@@ -459,9 +459,12 @@
 
 <main id="main">
   <div id="homeView" class="fade-up">
-    <div class="page-header">
-      <div class="page-title">Your <em>Clients</em></div>
-      <div class="page-sub" id="clientSub">—</div>
+    <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;">
+      <div>
+        <div class="page-title">Your <em>Clients</em></div>
+        <div class="page-sub" id="clientSub">—</div>
+      </div>
+      <button class="btn btn-outline btn-sm sort-btn" id="sortClientsBtn" onclick="sortClients()" style="display:none;margin-bottom:4px;">A→Z Sort</button>
     </div>
     <div class="clients-grid" id="clientsGrid"></div>
   </div>
@@ -477,8 +480,11 @@
         <div class="page-title" id="cvTitle"></div>
         <div class="page-sub" id="linkSub"></div>
       </div>
-      <div id="clientDelBtn" style="display:none">
-        <button class="btn btn-danger btn-sm" onclick="deleteCurrentClient()">Delete Client</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-outline btn-sm sort-btn" id="sortLinksBtn" onclick="sortLinks()" style="display:none;">A→Z Sort</button>
+        <div id="clientDelBtn" style="display:none">
+          <button class="btn btn-danger btn-sm" onclick="deleteCurrentClient()">Delete Client</button>
+        </div>
       </div>
     </div>
     <div class="links-grid" id="linksGrid"></div>
@@ -646,8 +652,8 @@ function renderClient() {
   }
 }
 
-function goHome() { currentId = null; render(); }
-function openClient(id) { currentId = id; render(); }
+function goHome() { currentId = null; document.getElementById('sortLinksBtn').style.display = 'none'; render(); }
+function openClient(id) { currentId = id; document.getElementById('sortLinksBtn').style.display = editMode ? '' : 'none'; render(); }
 
 function toggleEdit() {
   editMode = !editMode;
@@ -655,6 +661,8 @@ function toggleEdit() {
   document.getElementById('editBtn').className = editMode ? 'btn btn-editing' : 'btn btn-outline';
   document.getElementById('editPill').style.display = editMode ? 'inline-flex' : 'none';
   document.body.classList.toggle('edit-mode', editMode);
+  document.getElementById('sortClientsBtn').style.display = editMode ? '' : 'none';
+  document.getElementById('sortLinksBtn').style.display = (editMode && currentId) ? '' : 'none';
   render();
 }
 
@@ -805,6 +813,19 @@ function importData(e) {
   };
   reader.readAsText(file);
   e.target.value = '';
+}
+
+/* ── SORT ── */
+function sortClients() {
+  db.clients.sort((a, b) => a.name.localeCompare(b.name));
+  save(); render(); toast('Clients sorted A→Z');
+}
+
+function sortLinks() {
+  const c = db.clients.find(x => x.id === currentId);
+  if (!c) return;
+  c.links.sort((a, b) => a.name.localeCompare(b.name));
+  save(); render(); toast('Links sorted A→Z');
 }
 
 /* ── DRAG & DROP ── */
