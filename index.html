@@ -189,7 +189,7 @@
         <div class="page-sub" id="clientSub">—</div>
       </div>
       <div class="page-header-actions">
-        <button class="btn btn-outline btn-sm" id="sortClientsBtn" onclick="sortCurrent('name')" style="display:none">A→Z Sort</button>
+        <button class="btn btn-outline btn-sm" id="sortClientsBtn" onclick="sortCurrent()" style="display:none">A→Z Sort</button>
       </div>
     </div>
     <div class="clients-grid" id="clientsGrid"></div>
@@ -334,6 +334,7 @@ function renderHome() {
   document.getElementById('detailView').style.display = 'none';
   document.getElementById('backBtn').style.display = 'none';
   document.getElementById('sortClientsBtn').style.display = editMode ? '' : 'none';
+  document.getElementById('sortClientsBtn').textContent = sortLabel();
   const n = db.clients.length;
   document.getElementById('clientSub').textContent = n === 0 ? 'No clients added yet' : `${n} client${n!==1?'s':''}`;
   const grid = document.getElementById('clientsGrid');
@@ -414,13 +415,11 @@ function renderDetail() {
   const acts = document.getElementById('dvActions');
   acts.innerHTML = '';
   if (editMode) {
-    if (!isFolder) {
-      const sb = document.createElement('button');
-      sb.className = 'btn btn-outline btn-sm';
-      sb.textContent = 'A→Z Sort';
-      sb.onclick = () => sortCurrent('name');
-      acts.appendChild(sb);
-    }
+    const sb = document.createElement('button');
+    sb.className = 'btn btn-outline btn-sm';
+    sb.textContent = sortLabel();
+    sb.onclick = () => sortCurrent();
+    acts.appendChild(sb);
     const db2 = document.createElement('button');
     db2.className = 'btn btn-danger btn-sm';
     db2.textContent = isFolder ? 'Delete Folder' : 'Delete Client';
@@ -542,17 +541,32 @@ function toggleEdit() {
 }
 
 /* ─── SORT ───────────────────────────────────────────────────────────────── */
-function sortCurrent(by) {
+const sortState = {}; // key = nav.join('/') → 'asc' | 'desc'
+
+function sortKey() { return nav.join('/') || 'home'; }
+
+function sortCurrent() {
+  const key = sortKey();
+  const wasAsc = sortState[key] !== 'desc';
+  sortState[key] = wasAsc ? 'desc' : 'asc';
+  const cmp = wasAsc
+    ? (a,b) => b.name.localeCompare(a.name)
+    : (a,b) => a.name.localeCompare(b.name);
+
   if (!nav.length) {
-    db.clients.sort((a,b) => a.name.localeCompare(b.name));
-    save(); render(); toast('Clients sorted A→Z');
+    db.clients.sort(cmp);
   } else {
     const ctx = getCurrentContext();
     if (!ctx) return;
-    (ctx.links||[]).sort((a,b) => a.name.localeCompare(b.name));
-    if (!nav[1]) (ctx.folders||[]).sort((a,b) => a.name.localeCompare(b.name));
-    save(); render(); toast('Sorted A→Z');
+    (ctx.links||[]).sort(cmp);
+    if (!nav[1]) (ctx.folders||[]).sort(cmp);
   }
+  save(); render();
+  toast(wasAsc ? 'Sorted Z→A' : 'Sorted A→Z');
+}
+
+function sortLabel() {
+  return sortState[sortKey()] === 'desc' ? 'Z→A Sort' : 'A→Z Sort';
 }
 
 /* ─── CLIENT CRUD ───────────────────────────────────────────────────────── */
