@@ -585,6 +585,33 @@ function faviconUrl(url) {
   } catch { return ''; }
 }
 
+function faviconFallback(img, url) {
+  // Try sources in order: Google (sz=64) → direct favicon.ico → give up
+  const sources = [];
+  try {
+    const domain = new URL(url).hostname;
+    const origin = new URL(url).origin;
+    sources.push(`https://www.google.com/s2/favicons?domain=${domain}&sz=64`);
+    sources.push(`https://icons.duckduckgo.com/ip3/${domain}.ico`);
+    sources.push(`${origin}/favicon.ico`);
+    sources.push(`${origin}/favicon.png`);
+  } catch { img.style.display = 'none'; return; }
+
+  let idx = (img._fbIdx || 0);
+  if (idx >= sources.length) { img.style.display = 'none'; return; }
+  img._fbIdx = idx + 1;
+  img.src = sources[idx];
+}
+
+function onFaviconLoad(img) {
+  // Google returns a 16x16 grey globe for unknown sites — hide it
+  if (img.naturalWidth <= 16 && img.naturalHeight <= 16) {
+    faviconFallback(img, img.dataset.url);
+  } else {
+    img.classList.add('loaded');
+  }
+}
+
 function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -661,9 +688,9 @@ function renderClient() {
         <button class="ic-btn del" onclick="event.stopPropagation();deleteLink('${c.id}','${l.id}')" title="Delete">✕</button>
       </div>
       <div class="link-favicon-row">
-        <img class="link-favicon" src="${faviconUrl(l.url)}" alt="" loading="lazy"
-          onload="this.classList.add('loaded')"
-          onerror="this.style.display='none'">
+        <img class="link-favicon" src="${faviconUrl(l.url)}" data-url="${esc(l.url)}" alt="" loading="lazy"
+          onload="onFaviconLoad(this)"
+          onerror="faviconFallback(this, this.dataset.url)">
         <span class="link-name">${esc(l.name)}</span>
       </div>
       <div class="link-url">${esc(l.url)}</div>
