@@ -282,6 +282,25 @@
   .link-card:hover::before { opacity: 1; }
   .link-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--shadow-lg); border-color: var(--link-color, var(--accent)); }
 
+  .link-favicon-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 2px;
+  }
+
+  .link-favicon {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    object-fit: contain;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .link-favicon.loaded { opacity: 1; }
+
   .link-name {
     font-size: 14.5px; font-weight: 600; color: var(--text);
     transition: color 0.15s;
@@ -559,6 +578,12 @@ let editMode = false, currentId = null, editingCid = null, editingLid = null, li
 function save() { localStorage.setItem('chub3', JSON.stringify(db)); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function faviconUrl(url) {
+  try {
+    const domain = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+  } catch { return ''; }
+}
 
 function toast(msg) {
   const t = document.getElementById('toast');
@@ -635,7 +660,12 @@ function renderClient() {
         <button class="ic-btn" onclick="event.stopPropagation();openEditLink('${c.id}','${l.id}')" title="Edit">✏</button>
         <button class="ic-btn del" onclick="event.stopPropagation();deleteLink('${c.id}','${l.id}')" title="Delete">✕</button>
       </div>
-      <div class="link-name">${esc(l.name)}</div>
+      <div class="link-favicon-row">
+        <img class="link-favicon" src="${faviconUrl(l.url)}" alt="" loading="lazy"
+          onload="this.classList.add('loaded')"
+          onerror="this.style.display='none'">
+        <span class="link-name">${esc(l.name)}</span>
+      </div>
       <div class="link-url">${esc(l.url)}</div>
       <div class="link-arrow">↗</div>`;
     grid.appendChild(div);
