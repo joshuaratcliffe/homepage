@@ -410,6 +410,37 @@
   /* hidden import input */
   #importInput { display: none; }
 
+  /* ── DRAG & DROP ── */
+  .client-card[draggable="true"],
+  .link-card[draggable="true"] { cursor: grab; }
+  .client-card[draggable="true"]:active,
+  .link-card[draggable="true"]:active { cursor: grabbing; }
+
+  .card-dragging {
+    opacity: 0.35;
+    transform: scale(0.97);
+    box-shadow: none !important;
+  }
+
+  .drag-handle {
+    position: absolute;
+    top: 10px; left: 10px;
+    width: 20px; height: 20px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: grab;
+    z-index: 4;
+    opacity: 0.6;
+  }
+  .edit-mode .client-card:hover .drag-handle,
+  .edit-mode .link-card:hover .drag-handle { display: flex; }
+
+  .drop-before { box-shadow: -4px 0 0 0 var(--accent) !important; }
+  .drop-after  { box-shadow:  4px 0 0 0 var(--accent) !important; }
+
   @keyframes up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
   .fade-up { animation: up 0.32s ease both; }
   .client-card, .link-card { animation: up 0.3s ease both; }
@@ -544,7 +575,10 @@ function renderHome() {
     div.className = 'client-card';
     div.style.setProperty('--card-color', c.color);
     div.style.animationDelay = `${i*0.045}s`;
+    div.dataset.id = c.id;
+    if (editMode) div.setAttribute('draggable', 'true');
     div.innerHTML = `
+      <div class="drag-handle" title="Drag to reorder">⠿</div>
       <div class="card-controls">
         <button class="ic-btn" onclick="event.stopPropagation();openEditClient('${c.id}')" title="Edit">✏</button>
         <button class="ic-btn del" onclick="event.stopPropagation();deleteClient('${c.id}')" title="Delete">✕</button>
@@ -552,9 +586,10 @@ function renderHome() {
       <div class="client-icon">${c.name[0].toUpperCase()}</div>
       <div class="client-name">${esc(c.name)}</div>
       <div class="client-count">${c.links.length} link${c.links.length!==1?'s':''}</div>`;
-    div.onclick = () => openClient(c.id);
+    div.onclick = () => { if (!dragMoved) openClient(c.id); };
     grid.appendChild(div);
   });
+  if (editMode) initDrag(grid, 'clients', null);
   if (editMode) {
     const add = document.createElement('div');
     add.className = 'add-card';
@@ -585,8 +620,11 @@ function renderClient() {
     div.style.setProperty('--link-color', pal.color);
     div.style.setProperty('--link-bg', pal.bg);
     div.style.animationDelay = `${i*0.04}s`;
+    div.dataset.id = l.id;
+    if (editMode) div.setAttribute('draggable', 'true');
     div.innerHTML = `
       <a class="link-card-overlay" href="${esc(l.url)}" target="_blank" rel="noopener"></a>
+      <div class="drag-handle" title="Drag to reorder">⠿</div>
       <div class="card-controls">
         <button class="ic-btn" onclick="event.stopPropagation();openEditLink('${c.id}','${l.id}')" title="Edit">✏</button>
         <button class="ic-btn del" onclick="event.stopPropagation();deleteLink('${c.id}','${l.id}')" title="Delete">✕</button>
@@ -596,6 +634,7 @@ function renderClient() {
       <div class="link-arrow">↗</div>`;
     grid.appendChild(div);
   });
+  if (editMode) initDrag(grid, 'links', c.id);
   if (editMode) {
     const add = document.createElement('div');
     add.className = 'add-link-card';
@@ -766,6 +805,80 @@ function importData(e) {
   };
   reader.readAsText(file);
   e.target.value = '';
+}
+
+/* ── DRAG & DROP ── */
+let dragMoved = false;
+
+function initDrag(grid, type, clientId) {
+  let dragSrc = null;
+
+  const getCards = () => [...grid.querySelectorAll(type === 'clients' ? '.client-card' : '.link-card')];
+
+  function clearIndicators() {
+    getCards().forEach(c => c.classList.remove('drop-before', 'drop-after'));
+  }
+
+  grid.addEventListener('dragstart', e => {
+    const card = e.target.closest(type === 'clients' ? '.client-card' : '.link-card');
+    if (!card) return;
+    dragSrc = card;
+    dragMoved = false;
+    setTimeout(() => card.classList.add('card-dragging'), 0);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', card.dataset.id);
+  });
+
+  grid.addEventListener('drag', () => { dragMoved = true; });
+
+  grid.addEventListener('dragend', () => {
+    if (dragSrc) dragSrc.classList.remove('card-dragging');
+    clearIndicators();
+    dragSrc = null;
+    setTimeout(() => { dragMoved = false; }, 50);
+  });
+
+  grid.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const card = e.target.closest(type === 'clients' ? '.client-card' : '.link-card');
+    clearIndicators();
+    if (!card || card === dragSrc) return;
+    const rect = card.getBoundingClientRect();
+    card.classList.add(e.clientX < rect.left + rect.width / 2 ? 'drop-before' : 'drop-after');
+  });
+
+  grid.addEventListener('dragleave', e => {
+    if (!grid.contains(e.relatedTarget)) clearIndicators();
+  });
+
+  grid.addEventListener('drop', e => {
+    e.preventDefault();
+    clearIndicators();
+    const card = e.target.closest(type === 'clients' ? '.client-card' : '.link-card');
+    if (!card || card === dragSrc || !dragSrc) return;
+    const rect = card.getBoundingClientRect();
+    const before = e.clientX < rect.left + rect.width / 2;
+    if (type === 'clients') {
+      const arr = db.clients;
+      const fi = arr.findIndex(c => c.id === dragSrc.dataset.id);
+      const ti = arr.findIndex(c => c.id === card.dataset.id);
+      if (fi === -1 || ti === -1) return;
+      const [item] = arr.splice(fi, 1);
+      const ni = arr.findIndex(c => c.id === card.dataset.id);
+      arr.splice(before ? ni : ni + 1, 0, item);
+    } else {
+      const arr = db.clients.find(x => x.id === clientId).links;
+      const fi = arr.findIndex(l => l.id === dragSrc.dataset.id);
+      const ti = arr.findIndex(l => l.id === card.dataset.id);
+      if (fi === -1 || ti === -1) return;
+      const [item] = arr.splice(fi, 1);
+      const ni = arr.findIndex(l => l.id === card.dataset.id);
+      arr.splice(before ? ni : ni + 1, 0, item);
+    }
+    save();
+    render();
+  });
 }
 
 render();
