@@ -24,6 +24,23 @@
     --shadow-lg: rgba(60,40,20,0.13);
   }
 
+  /* ── DARK MODE THEME ── */
+  body.dark {
+    --bg: #18160f;
+    --bg2: #211e15;
+    --surface: #26221a;
+    --surface2: #2e2a20;
+    --border: #38332a;
+    --border2: #4a4438;
+    --text: #f0ebe3;
+    --text2: #b8b0a4;
+    --muted: #7a7268;
+    --accent: #d4714e;
+    --accent-light: rgba(212,113,78,0.15);
+    --shadow: rgba(0,0,0,0.3);
+    --shadow-lg: rgba(0,0,0,0.5);
+  }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
@@ -32,6 +49,7 @@
     color: var(--text);
     min-height: 100vh;
     overflow-x: hidden;
+    transition: background 0.3s ease, color 0.3s ease;
   }
 
   body::before {
@@ -43,6 +61,12 @@
       radial-gradient(ellipse 50% 60% at 90% 100%, rgba(92,122,107,0.06) 0%, transparent 50%);
     pointer-events: none;
     z-index: 0;
+    transition: background-image 0.3s ease;
+  }
+  body.dark::before {
+    background-image:
+      radial-gradient(ellipse 70% 50% at 10% 0%, rgba(212,113,78,0.09) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 60% at 90% 100%, rgba(92,122,107,0.07) 0%, transparent 50%);
   }
 
   header {
@@ -55,7 +79,9 @@
     background: rgba(255,255,255,0.8);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
+    transition: background 0.3s ease, border-color 0.3s ease;
   }
+  body.dark header { background: rgba(24,22,15,0.85); }
 
   .logo {
     font-family: 'Lora', serif;
@@ -96,6 +122,9 @@
   .btn-outline:hover { background: var(--surface2); color: var(--text); }
   .btn-danger { background: #fff0ee; color: #c0392b; border: 1px solid #f5c6c2; }
   .btn-danger:hover { background: #ffe4e0; }
+  body.dark .btn-danger { background: rgba(192,57,43,0.15); color: #e57373; border-color: rgba(192,57,43,0.3); }
+  body.dark .btn-danger:hover { background: rgba(192,57,43,0.25); }
+  body.dark .ic-btn.del:hover { background: rgba(192,57,43,0.18); color: #e57373; border-color: rgba(192,57,43,0.4); }
   .btn-editing { background: var(--accent-light); color: var(--accent); border: 1px solid rgba(201,100,66,0.25); }
   .btn-editing:hover { background: #f0ddd6; }
   .btn-sm { padding: 6px 13px; font-size: 12.5px; }
@@ -103,7 +132,7 @@
   main {
     position: relative;
     z-index: 1;
-    padding: 52px 44px;
+    padding: 52px 44px 100px;
     max-width: 1100px;
     margin: 0 auto;
   }
@@ -240,6 +269,8 @@
     box-shadow: 0 1px 3px var(--shadow);
     display: flex; flex-direction: column; gap: 6px;
     overflow: hidden;
+    cursor: pointer;
+    text-decoration: none;
   }
   .link-card::before {
     content: '';
@@ -251,12 +282,17 @@
   .link-card:hover::before { opacity: 1; }
   .link-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--shadow-lg); border-color: var(--link-color, var(--accent)); }
 
-  .link-name a {
+  .link-name {
     font-size: 14.5px; font-weight: 600; color: var(--text);
-    text-decoration: none; transition: color 0.15s;
+    transition: color 0.15s;
     display: block; position: relative; z-index: 1;
   }
-  .link-name a:hover { color: var(--link-color, var(--accent)); }
+  .link-card:hover .link-name { color: var(--link-color, var(--accent)); }
+  /* Invisible full-card click overlay */
+  .link-card-overlay {
+    position: absolute; inset: 0; z-index: 2;
+  }
+  .edit-mode .link-card-overlay { display: none; }
   .link-url { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; position: relative; z-index: 1; }
   .link-arrow { font-size: 16px; color: var(--link-color, var(--accent)); opacity: 0; transition: all 0.15s; align-self: flex-end; margin-top: 4px; position: relative; z-index: 1; }
   .link-card:hover .link-arrow { opacity: 1; transform: translate(2px, -2px); }
@@ -337,6 +373,42 @@
     z-index: 200; box-shadow: 0 16px 40px rgba(60,40,20,0.25); font-weight: 500;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── FOOTER ── */
+  .footer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 20;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .footer-btn {
+    pointer-events: all;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text2);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    box-shadow: 0 2px 8px var(--shadow);
+    white-space: nowrap;
+  }
+  .footer-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--accent); }
+  .footer-btn .fbicon { font-size: 15px; line-height: 1; }
+
+  /* hidden import input */
+  #importInput { display: none; }
 
   @keyframes up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
   .fade-up { animation: up 0.32s ease both; }
@@ -420,6 +492,20 @@
   </div>
 </div>
 
+<!-- FOOTER -->
+<div class="footer">
+  <button class="footer-btn" id="darkBtn" onclick="toggleDark()" title="Toggle dark mode">
+    <span class="fbicon" id="darkIcon">🌙</span> <span id="darkLabel">Dark mode</span>
+  </button>
+  <button class="footer-btn" onclick="exportData()" title="Export your data as a JSON file">
+    <span class="fbicon">⬇</span> Export
+  </button>
+  <button class="footer-btn" onclick="document.getElementById('importInput').click()" title="Import a previously exported JSON file">
+    <span class="fbicon">⬆</span> Import
+  </button>
+  <input type="file" id="importInput" accept=".json,application/json" onchange="importData(event)">
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -500,11 +586,12 @@ function renderClient() {
     div.style.setProperty('--link-bg', pal.bg);
     div.style.animationDelay = `${i*0.04}s`;
     div.innerHTML = `
+      <a class="link-card-overlay" href="${esc(l.url)}" target="_blank" rel="noopener"></a>
       <div class="card-controls">
         <button class="ic-btn" onclick="event.stopPropagation();openEditLink('${c.id}','${l.id}')" title="Edit">✏</button>
         <button class="ic-btn del" onclick="event.stopPropagation();deleteLink('${c.id}','${l.id}')" title="Delete">✕</button>
       </div>
-      <div class="link-name"><a href="${esc(l.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(l.name)}</a></div>
+      <div class="link-name">${esc(l.name)}</div>
       <div class="link-url">${esc(l.url)}</div>
       <div class="link-arrow">↗</div>`;
     grid.appendChild(div);
@@ -637,6 +724,49 @@ document.querySelectorAll('.modal-overlay').forEach(o =>
 );
 document.getElementById('cmName').addEventListener('keydown', e => { if (e.key === 'Enter') saveClient(); });
 document.getElementById('lmUrl').addEventListener('keydown', e => { if (e.key === 'Enter') saveLink(); });
+
+/* ── DARK MODE ── */
+let darkMode = localStorage.getItem('chub-dark') === '1';
+function applyDark() {
+  document.body.classList.toggle('dark', darkMode);
+  document.getElementById('darkIcon').textContent = darkMode ? '☀️' : '🌙';
+  document.getElementById('darkLabel').textContent = darkMode ? 'Light mode' : 'Dark mode';
+}
+function toggleDark() {
+  darkMode = !darkMode;
+  localStorage.setItem('chub-dark', darkMode ? '1' : '0');
+  applyDark();
+}
+applyDark();
+
+/* ── EXPORT ── */
+function exportData() {
+  const json = JSON.stringify(db, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'clienthub-export.json'; a.click();
+  URL.revokeObjectURL(url);
+  toast('Data exported!');
+}
+
+/* ── IMPORT ── */
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      if (!parsed.clients || !Array.isArray(parsed.clients)) throw new Error();
+      if (!confirm(`Replace current data with ${parsed.clients.length} client(s) from file?`)) return;
+      db = parsed; save(); render();
+      toast('Data imported successfully!');
+    } catch { alert('Could not read file. Make sure it is a valid Client Hub export.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
 
 render();
 </script>
