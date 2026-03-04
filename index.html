@@ -7,462 +7,166 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f5f0eb;
-    --bg2: #ede8e0;
-    --surface: #ffffff;
-    --surface2: #faf7f4;
-    --border: #e0d9d0;
-    --border2: #cfc8be;
-    --text: #1a1714;
-    --text2: #4a4540;
-    --muted: #8a847c;
-    --accent: #c96442;
-    --accent-light: #f5e8e2;
-    --accent2: #9b6b4a;
-    --accent3: #5c7a6b;
-    --shadow: rgba(60,40,20,0.08);
-    --shadow-lg: rgba(60,40,20,0.13);
+    --bg: #f5f0eb; --bg2: #ede8e0; --surface: #ffffff; --surface2: #faf7f4;
+    --border: #e0d9d0; --border2: #cfc8be; --text: #1a1714; --text2: #4a4540;
+    --muted: #8a847c; --accent: #c96442; --accent-light: #f5e8e2;
+    --shadow: rgba(60,40,20,0.08); --shadow-lg: rgba(60,40,20,0.13);
   }
-
-  /* ── DARK MODE THEME ── */
   body.dark {
-    --bg: #18160f;
-    --bg2: #211e15;
-    --surface: #26221a;
-    --surface2: #2e2a20;
-    --border: #38332a;
-    --border2: #4a4438;
-    --text: #f0ebe3;
-    --text2: #b8b0a4;
-    --muted: #7a7268;
-    --accent: #d4714e;
-    --accent-light: rgba(212,113,78,0.15);
-    --shadow: rgba(0,0,0,0.3);
-    --shadow-lg: rgba(0,0,0,0.5);
+    --bg: #18160f; --bg2: #211e15; --surface: #26221a; --surface2: #2e2a20;
+    --border: #38332a; --border2: #4a4438; --text: #f0ebe3; --text2: #b8b0a4;
+    --muted: #7a7268; --accent: #d4714e; --accent-light: rgba(212,113,78,0.15);
+    --shadow: rgba(0,0,0,0.3); --shadow-lg: rgba(0,0,0,0.5);
   }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; transition:background 0.3s,color 0.3s; }
+  body::before { content:''; position:fixed; inset:0; background-image: radial-gradient(ellipse 70% 50% at 10% 0%,rgba(201,100,66,.07) 0%,transparent 55%), radial-gradient(ellipse 50% 60% at 90% 100%,rgba(92,122,107,.06) 0%,transparent 50%); pointer-events:none; z-index:0; }
+  body.dark::before { background-image: radial-gradient(ellipse 70% 50% at 10% 0%,rgba(212,113,78,.09) 0%,transparent 55%), radial-gradient(ellipse 50% 60% at 90% 100%,rgba(92,122,107,.07) 0%,transparent 50%); }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  header { position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:20px 44px; background:rgba(255,255,255,.8); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); transition:background .3s,border-color .3s; }
+  body.dark header { background:rgba(24,22,15,.85); }
+  .logo { font-family:'Lora',serif; font-size:20px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:9px; }
+  .logo-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); }
+  .header-right { display:flex; align-items:center; gap:10px; }
 
-  body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-    transition: background 0.3s ease, color 0.3s ease;
-  }
+  .btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:8px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; font-weight:600; cursor:pointer; transition:all .18s ease; text-decoration:none; white-space:nowrap; letter-spacing:-.1px; }
+  .btn-primary { background:var(--accent); color:#fff; box-shadow:0 1px 3px rgba(201,100,66,.3); }
+  .btn-primary:hover { background:#b85838; transform:translateY(-1px); box-shadow:0 4px 12px rgba(201,100,66,.3); }
+  .btn-outline { background:var(--surface); color:var(--text2); border:1px solid var(--border2); box-shadow:0 1px 2px var(--shadow); }
+  .btn-outline:hover { background:var(--surface2); color:var(--text); }
+  .btn-danger { background:#fff0ee; color:#c0392b; border:1px solid #f5c6c2; }
+  .btn-danger:hover { background:#ffe4e0; }
+  body.dark .btn-danger { background:rgba(192,57,43,.15); color:#e57373; border-color:rgba(192,57,43,.3); }
+  body.dark .btn-danger:hover { background:rgba(192,57,43,.25); }
+  body.dark .ic-btn.del:hover { background:rgba(192,57,43,.18); color:#e57373; border-color:rgba(192,57,43,.4); }
+  .btn-editing { background:var(--accent-light); color:var(--accent); border:1px solid rgba(201,100,66,.25); }
+  .btn-editing:hover { background:#f0ddd6; }
+  .btn-sm { padding:6px 13px; font-size:12.5px; }
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      radial-gradient(ellipse 70% 50% at 10% 0%, rgba(201,100,66,0.07) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 60% at 90% 100%, rgba(92,122,107,0.06) 0%, transparent 50%);
-    pointer-events: none;
-    z-index: 0;
-    transition: background-image 0.3s ease;
-  }
-  body.dark::before {
-    background-image:
-      radial-gradient(ellipse 70% 50% at 10% 0%, rgba(212,113,78,0.09) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 60% at 90% 100%, rgba(92,122,107,0.07) 0%, transparent 50%);
-  }
+  main { position:relative; z-index:1; padding:52px 44px 100px; max-width:1100px; margin:0 auto; }
 
-  header {
-    position: relative;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 44px;
-    background: rgba(255,255,255,0.8);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    transition: background 0.3s ease, border-color 0.3s ease;
-  }
-  body.dark header { background: rgba(24,22,15,0.85); }
+  .page-header { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:40px; }
+  .page-header-left {}
+  .page-title { font-family:'Lora',serif; font-size:32px; font-weight:600; letter-spacing:-.5px; line-height:1.15; margin-bottom:6px; }
+  .page-title em { font-style:italic; color:var(--accent); }
+  .page-sub { font-size:14px; color:var(--muted); }
+  .page-header-actions { display:flex; gap:8px; align-items:center; flex-shrink:0; margin-bottom:4px; }
 
-  .logo {
-    font-family: 'Lora', serif;
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 9px;
-  }
-  .logo-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-  }
-
-  .header-right { display: flex; align-items: center; gap: 10px; }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 9px 18px;
-    border-radius: 8px;
-    border: none;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 13.5px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.18s ease;
-    text-decoration: none;
-    white-space: nowrap;
-    letter-spacing: -0.1px;
-  }
-  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 1px 3px rgba(201,100,66,0.3); }
-  .btn-primary:hover { background: #b85838; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(201,100,66,0.3); }
-  .btn-outline { background: var(--surface); color: var(--text2); border: 1px solid var(--border2); box-shadow: 0 1px 2px var(--shadow); }
-  .btn-outline:hover { background: var(--surface2); color: var(--text); }
-  .btn-danger { background: #fff0ee; color: #c0392b; border: 1px solid #f5c6c2; }
-  .btn-danger:hover { background: #ffe4e0; }
-  body.dark .btn-danger { background: rgba(192,57,43,0.15); color: #e57373; border-color: rgba(192,57,43,0.3); }
-  body.dark .btn-danger:hover { background: rgba(192,57,43,0.25); }
-  body.dark .ic-btn.del:hover { background: rgba(192,57,43,0.18); color: #e57373; border-color: rgba(192,57,43,0.4); }
-  .btn-editing { background: var(--accent-light); color: var(--accent); border: 1px solid rgba(201,100,66,0.25); }
-  .btn-editing:hover { background: #f0ddd6; }
-  .btn-sm { padding: 6px 13px; font-size: 12.5px; }
-
-  main {
-    position: relative;
-    z-index: 1;
-    padding: 52px 44px 100px;
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-
-  .page-header { margin-bottom: 40px; }
-  .page-title {
-    font-family: 'Lora', serif;
-    font-size: 32px;
-    font-weight: 600;
-    letter-spacing: -0.5px;
-    line-height: 1.15;
-    margin-bottom: 6px;
-  }
-  .page-title em { font-style: italic; color: var(--accent); }
-  .page-sub { font-size: 14px; color: var(--muted); }
-
-  .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-bottom: 32px; }
-  .bc-item { cursor: pointer; transition: color 0.15s; }
-  .bc-item:hover { color: var(--accent); }
-  .bc-item.active { color: var(--text); pointer-events: none; font-weight: 500; }
-  .bc-sep { opacity: 0.5; font-size: 11px; }
-
-  .section-bar { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; gap: 16px; }
+  .breadcrumb { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); margin-bottom:32px; flex-wrap:wrap; }
+  .bc-item { cursor:pointer; transition:color .15s; }
+  .bc-item:hover { color:var(--accent); }
+  .bc-item.active { color:var(--text); pointer-events:none; font-weight:500; }
+  .bc-sep { opacity:.5; font-size:11px; }
 
   /* CLIENT GRID */
-  .clients-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
-    gap: 14px;
-  }
+  .clients-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(195px,1fr)); gap:14px; }
+  .client-card { position:relative; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px 22px 20px; cursor:pointer; transition:all .2s ease; box-shadow:0 1px 3px var(--shadow); display:flex; flex-direction:column; gap:12px; min-height:130px; overflow:hidden; }
+  .client-card::after { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--card-color,var(--accent)); border-radius:14px 14px 0 0; opacity:.7; transition:opacity .2s; }
+  .client-card:hover { transform:translateY(-3px); box-shadow:0 10px 32px var(--shadow-lg); border-color:var(--border2); }
+  .client-card:hover::after { opacity:1; }
+  .client-icon { width:38px; height:38px; border-radius:9px; background:var(--card-color,var(--accent)); color:#fff; font-family:'Lora',serif; font-size:16px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .client-name { font-size:15px; font-weight:600; color:var(--text); line-height:1.3; flex:1; }
+  .client-count { font-size:12px; color:var(--muted); }
 
-  .client-card {
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 24px 22px 20px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 3px var(--shadow);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-height: 130px;
-    overflow: hidden;
-  }
-  .client-card::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: var(--card-color, var(--accent));
-    border-radius: 14px 14px 0 0;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-  }
-  .client-card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px var(--shadow-lg); border-color: var(--border2); }
-  .client-card:hover::after { opacity: 1; }
+  /* FOLDER CARD — looks like client card but with a folder tint */
+  .folder-card { position:relative; background:var(--surface2); border:1px solid var(--border); border-radius:14px; padding:20px 20px 16px; cursor:pointer; transition:all .2s ease; box-shadow:0 1px 3px var(--shadow); display:flex; flex-direction:column; gap:10px; min-height:110px; overflow:hidden; }
+  .folder-card::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(201,100,66,.05) 0%,transparent 60%); border-radius:14px; pointer-events:none; }
+  .folder-card:hover { transform:translateY(-3px); box-shadow:0 10px 32px var(--shadow-lg); border-color:var(--border2); }
+  .folder-icon { font-size:24px; line-height:1; }
+  .folder-name { font-size:14px; font-weight:600; color:var(--text); line-height:1.3; flex:1; }
+  .folder-count { font-size:12px; color:var(--muted); }
 
-  .client-icon {
-    width: 38px; height: 38px;
-    border-radius: 9px;
-    background: var(--card-color, var(--accent));
-    color: #fff;
-    font-family: 'Lora', serif;
-    font-size: 16px;
-    font-weight: 600;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .client-name { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; flex: 1; }
-  .client-count { font-size: 12px; color: var(--muted); }
+  /* section divider between folders and links */
+  .section-divider { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin:28px 0 14px; display:flex; align-items:center; gap:10px; }
+  .section-divider::after { content:''; flex:1; height:1px; background:var(--border); }
 
-  .card-controls {
-    position: absolute;
-    top: 10px; right: 10px;
-    display: flex; gap: 4px;
-    opacity: 0; transition: opacity 0.15s; z-index: 3;
-  }
+  /* CARD CONTROLS */
+  .card-controls { position:absolute; top:10px; right:10px; display:flex; gap:4px; opacity:0; transition:opacity .15s; z-index:3; }
   .edit-mode .client-card:hover .card-controls,
-  .edit-mode .link-card:hover .card-controls { opacity: 1; }
+  .edit-mode .folder-card:hover .card-controls,
+  .edit-mode .link-card:hover .card-controls { opacity:1; }
+  .ic-btn { width:26px; height:26px; border-radius:6px; background:var(--surface2); border:1px solid var(--border); color:var(--muted); font-size:11px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .15s; }
+  .ic-btn:hover { color:var(--text); border-color:var(--border2); }
+  .ic-btn.del:hover { color:#c0392b; border-color:#f5c6c2; background:#fff0ee; }
 
-  .ic-btn {
-    width: 26px; height: 26px;
-    border-radius: 6px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-size: 11px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .ic-btn:hover { color: var(--text); border-color: var(--border2); }
-  .ic-btn.del:hover { color: #c0392b; border-color: #f5c6c2; background: #fff0ee; }
+  /* ADD CARDS */
+  .add-card { border:1.5px dashed var(--border2); border-radius:14px; padding:24px 22px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--muted); font-size:13.5px; font-weight:500; transition:all .2s; min-height:130px; background:transparent; }
+  .add-card:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+  .add-circle { width:34px; height:34px; border-radius:50%; border:1.5px solid currentColor; display:flex; align-items:center; justify-content:center; font-size:20px; transition:transform .2s; }
+  .add-card:hover .add-circle { transform:scale(1.1) rotate(90deg); }
 
-  .add-card {
-    border: 1.5px dashed var(--border2);
-    border-radius: 14px;
-    padding: 24px 22px;
-    cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 10px;
-    color: var(--muted);
-    font-size: 13.5px; font-weight: 500;
-    transition: all 0.2s;
-    min-height: 130px;
-    background: transparent;
-  }
-  .add-card:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
-  .add-circle {
-    width: 34px; height: 34px; border-radius: 50%;
-    border: 1.5px solid currentColor;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-    transition: transform 0.2s;
-  }
-  .add-card:hover .add-circle { transform: scale(1.1) rotate(90deg); }
+  .add-folder-card { border:1.5px dashed var(--border2); border-radius:14px; padding:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; color:var(--muted); font-size:13px; font-weight:500; transition:all .2s; min-height:110px; background:transparent; }
+  .add-folder-card:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
 
   /* LINKS GRID */
-  .links-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
-    gap: 12px;
-  }
+  .links-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(172px,1fr)); gap:12px; }
+  .link-card { position:relative; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 18px 16px; transition:all .18s ease; box-shadow:0 1px 3px var(--shadow); display:flex; flex-direction:column; gap:6px; overflow:hidden; cursor:pointer; text-decoration:none; }
+  .link-card::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,var(--link-bg,#f5e8e2) 0%,transparent 65%); opacity:0; transition:opacity .2s; border-radius:12px; pointer-events:none; }
+  .link-card:hover::before { opacity:1; }
+  .link-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px var(--shadow-lg); border-color:var(--link-color,var(--accent)); }
+  .link-card-overlay { position:absolute; inset:0; z-index:2; }
+  .edit-mode .link-card-overlay { display:none; }
+  .link-favicon-row { display:flex; align-items:center; gap:8px; position:relative; z-index:1; margin-bottom:2px; }
+  .link-favicon { width:18px; height:18px; border-radius:4px; flex-shrink:0; object-fit:contain; opacity:0; transition:opacity .3s; }
+  .link-favicon.loaded { opacity:1; }
+  .link-name { font-size:14.5px; font-weight:600; color:var(--text); transition:color .15s; display:block; position:relative; z-index:1; }
+  .link-card:hover .link-name { color:var(--link-color,var(--accent)); }
+  .link-url { font-size:11.5px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; position:relative; z-index:1; }
+  .link-arrow { font-size:16px; color:var(--link-color,var(--accent)); opacity:0; transition:all .15s; align-self:flex-end; margin-top:4px; position:relative; z-index:1; }
+  .link-card:hover .link-arrow { opacity:1; transform:translate(2px,-2px); }
+  .add-link-card { border:1.5px dashed var(--border2); border-radius:12px; padding:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; color:var(--muted); font-size:13px; font-weight:500; transition:all .18s; min-height:80px; background:transparent; }
+  .add-link-card:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
 
-  .link-card {
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px 18px 16px;
-    transition: all 0.18s ease;
-    box-shadow: 0 1px 3px var(--shadow);
-    display: flex; flex-direction: column; gap: 6px;
-    overflow: hidden;
-    cursor: pointer;
-    text-decoration: none;
-  }
-  .link-card::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, var(--link-bg, #f5e8e2) 0%, transparent 65%);
-    opacity: 0; transition: opacity 0.2s;
-    border-radius: 12px; pointer-events: none;
-  }
-  .link-card:hover::before { opacity: 1; }
-  .link-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--shadow-lg); border-color: var(--link-color, var(--accent)); }
-
-  .link-favicon-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    position: relative;
-    z-index: 1;
-    margin-bottom: 2px;
-  }
-
-  .link-favicon {
-    width: 18px; height: 18px;
-    border-radius: 4px;
-    flex-shrink: 0;
-    object-fit: contain;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-  .link-favicon.loaded { opacity: 1; }
-
-  .link-name {
-    font-size: 14.5px; font-weight: 600; color: var(--text);
-    transition: color 0.15s;
-    display: block; position: relative; z-index: 1;
-  }
-  .link-card:hover .link-name { color: var(--link-color, var(--accent)); }
-  /* Invisible full-card click overlay */
-  .link-card-overlay {
-    position: absolute; inset: 0; z-index: 2;
-  }
-  .edit-mode .link-card-overlay { display: none; }
-  .link-url { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; position: relative; z-index: 1; }
-  .link-arrow { font-size: 16px; color: var(--link-color, var(--accent)); opacity: 0; transition: all 0.15s; align-self: flex-end; margin-top: 4px; position: relative; z-index: 1; }
-  .link-card:hover .link-arrow { opacity: 1; transform: translate(2px, -2px); }
-
-  .add-link-card {
-    border: 1.5px dashed var(--border2);
-    border-radius: 12px; padding: 18px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    gap: 8px;
-    color: var(--muted); font-size: 13px; font-weight: 500;
-    transition: all 0.18s; min-height: 80px; background: transparent;
-  }
-  .add-link-card:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
-
-  .empty { grid-column: 1 / -1; text-align: center; padding: 64px 20px; color: var(--muted); }
-  .empty-icon { font-size: 44px; margin-bottom: 14px; }
-  .empty-title { font-family: 'Lora', serif; font-size: 18px; color: var(--text2); margin-bottom: 6px; }
-  .empty-desc { font-size: 14px; }
+  .empty { grid-column:1/-1; text-align:center; padding:64px 20px; color:var(--muted); }
+  .empty-icon { font-size:44px; margin-bottom:14px; }
+  .empty-title { font-family:'Lora',serif; font-size:18px; color:var(--text2); margin-bottom:6px; }
+  .empty-desc { font-size:14px; }
 
   /* MODAL */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(26,23,20,0.35);
-    backdrop-filter: blur(6px);
-    z-index: 100;
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none; transition: opacity 0.22s;
-  }
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal-overlay { position:fixed; inset:0; background:rgba(26,23,20,.35); backdrop-filter:blur(6px); z-index:100; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .22s; }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:36px; width:100%; max-width:440px; transform:scale(.96) translateY(8px); transition:transform .25s cubic-bezier(.34,1.56,.64,1); box-shadow:0 40px 80px rgba(60,40,20,.18); }
+  .modal-overlay.open .modal { transform:scale(1) translateY(0); }
+  .modal-title { font-family:'Lora',serif; font-size:20px; font-weight:600; margin-bottom:24px; color:var(--text); }
+  .form-group { margin-bottom:18px; }
+  label { display:block; font-size:12.5px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:7px; }
+  input[type="text"],input[type="url"] { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:11px 14px; color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; outline:none; transition:border-color .18s,box-shadow .18s; }
+  input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(201,100,66,.1); }
+  input::placeholder { color:var(--muted); }
+  .color-row { display:flex; gap:9px; flex-wrap:wrap; }
+  .swatch { width:30px; height:30px; border-radius:7px; cursor:pointer; border:2.5px solid transparent; transition:transform .15s,border-color .15s; }
+  .swatch:hover { transform:scale(1.18); }
+  .swatch.selected { border-color:var(--text); }
+  .modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:28px; }
 
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 18px; padding: 36px;
-    width: 100%; max-width: 440px;
-    transform: scale(0.96) translateY(8px);
-    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
-    box-shadow: 0 40px 80px rgba(60,40,20,0.18);
-  }
-  .modal-overlay.open .modal { transform: scale(1) translateY(0); }
-  .modal-title { font-family: 'Lora', serif; font-size: 20px; font-weight: 600; margin-bottom: 24px; color: var(--text); }
+  .edit-pill { display:inline-flex; align-items:center; gap:6px; background:var(--accent-light); color:var(--accent); border:1px solid rgba(201,100,66,.2); border-radius:20px; padding:4px 12px 4px 8px; font-size:12.5px; font-weight:600; }
+  .blink { width:7px; height:7px; border-radius:50%; background:var(--accent); animation:blink 1.6s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:.35} }
 
-  .form-group { margin-bottom: 18px; }
-  label { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; }
-  input[type="text"], input[type="url"] {
-    width: 100%; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 9px; padding: 11px 14px;
-    color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px;
-    outline: none; transition: border-color 0.18s, box-shadow 0.18s;
-  }
-  input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(201,100,66,0.1); }
-  input::placeholder { color: var(--muted); }
+  .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--text); color:#fff; padding:11px 22px; border-radius:10px; font-size:13.5px; opacity:0; transition:all .28s ease; z-index:200; box-shadow:0 16px 40px rgba(60,40,20,.25); font-weight:500; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
-  .color-row { display: flex; gap: 9px; flex-wrap: wrap; }
-  .swatch { width: 30px; height: 30px; border-radius: 7px; cursor: pointer; border: 2.5px solid transparent; transition: transform 0.15s, border-color 0.15s; }
-  .swatch:hover { transform: scale(1.18); }
-  .swatch.selected { border-color: var(--text); }
+  /* FOOTER */
+  .footer { position:fixed; bottom:0; left:0; right:0; z-index:20; padding:14px 28px; display:flex; align-items:center; gap:8px; pointer-events:none; }
+  .footer-btn { pointer-events:all; display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:8px; border:1px solid var(--border2); background:var(--surface); color:var(--text2); font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:500; cursor:pointer; transition:all .18s ease; box-shadow:0 2px 8px var(--shadow); white-space:nowrap; }
+  .footer-btn:hover { background:var(--surface2); color:var(--text); border-color:var(--accent); }
+  .footer-btn .fbicon { font-size:15px; line-height:1; }
+  #importInput { display:none; }
 
-  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 28px; }
-
-  .edit-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--accent-light); color: var(--accent);
-    border: 1px solid rgba(201,100,66,0.2);
-    border-radius: 20px; padding: 4px 12px 4px 8px;
-    font-size: 12.5px; font-weight: 600;
-  }
-  .blink { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: blink 1.6s ease-in-out infinite; }
-  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
-
-  .toast {
-    position: fixed; bottom: 28px; left: 50%;
-    transform: translateX(-50%) translateY(16px);
-    background: var(--text); color: #fff;
-    padding: 11px 22px; border-radius: 10px;
-    font-size: 13.5px; opacity: 0; transition: all 0.28s ease;
-    z-index: 200; box-shadow: 0 16px 40px rgba(60,40,20,0.25); font-weight: 500;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-  /* ── FOOTER ── */
-  .footer {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    z-index: 20;
-    padding: 14px 28px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    pointer-events: none;
-  }
-
-  .footer-btn {
-    pointer-events: all;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: 1px solid var(--border2);
-    background: var(--surface);
-    color: var(--text2);
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.18s ease;
-    box-shadow: 0 2px 8px var(--shadow);
-    white-space: nowrap;
-  }
-  .footer-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--accent); }
-  .footer-btn .fbicon { font-size: 15px; line-height: 1; }
-
-  /* hidden import input */
-  #importInput { display: none; }
-
-  /* ── DRAG & DROP ── */
-  .client-card[draggable="true"],
-  .link-card[draggable="true"] { cursor: grab; }
-  .client-card[draggable="true"]:active,
-  .link-card[draggable="true"]:active { cursor: grabbing; }
-
-  .card-dragging {
-    opacity: 0.35;
-    transform: scale(0.97);
-    box-shadow: none !important;
-  }
-
-  .drag-handle {
-    position: absolute;
-    top: 10px; left: 10px;
-    width: 20px; height: 20px;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted);
-    font-size: 13px;
-    cursor: grab;
-    z-index: 4;
-    opacity: 0.6;
-  }
+  /* DRAG & DROP */
+  .client-card[draggable="true"],.folder-card[draggable="true"],.link-card[draggable="true"] { cursor:grab; }
+  .client-card[draggable="true"]:active,.folder-card[draggable="true"]:active,.link-card[draggable="true"]:active { cursor:grabbing; }
+  .card-dragging { opacity:.35; transform:scale(.97); box-shadow:none!important; }
+  .drag-handle { position:absolute; top:10px; left:10px; width:20px; height:20px; display:none; align-items:center; justify-content:center; color:var(--muted); font-size:13px; cursor:grab; z-index:4; opacity:.6; }
   .edit-mode .client-card:hover .drag-handle,
-  .edit-mode .link-card:hover .drag-handle { display: flex; }
+  .edit-mode .folder-card:hover .drag-handle,
+  .edit-mode .link-card:hover .drag-handle { display:flex; }
+  .drop-before { box-shadow:-4px 0 0 0 var(--accent)!important; }
+  .drop-after  { box-shadow: 4px 0 0 0 var(--accent)!important; }
 
-  .drop-before { box-shadow: -4px 0 0 0 var(--accent) !important; }
-  .drop-after  { box-shadow:  4px 0 0 0 var(--accent) !important; }
-
-  @keyframes up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-  .fade-up { animation: up 0.32s ease both; }
-  .client-card, .link-card { animation: up 0.3s ease both; }
+  @keyframes up { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)} }
+  .fade-up { animation:up .32s ease both; }
+  .client-card,.folder-card,.link-card { animation:up .3s ease both; }
 </style>
 </head>
 <body>
@@ -471,42 +175,37 @@
   <div class="logo"><span class="logo-dot"></span>Client Hub</div>
   <div class="header-right">
     <div id="editPill" class="edit-pill" style="display:none"><span class="blink"></span> Editing</div>
-    <button class="btn btn-outline" id="backBtn" onclick="goHome()" style="display:none">← All Clients</button>
+    <button class="btn btn-outline" id="backBtn" onclick="goBack()" style="display:none">← Back</button>
     <button class="btn btn-outline" id="editBtn" onclick="toggleEdit()">✏ Edit</button>
   </div>
 </header>
 
 <main id="main">
+  <!-- HOME VIEW -->
   <div id="homeView" class="fade-up">
-    <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;">
-      <div>
+    <div class="page-header">
+      <div class="page-header-left">
         <div class="page-title">Your <em>Clients</em></div>
         <div class="page-sub" id="clientSub">—</div>
       </div>
-      <button class="btn btn-outline btn-sm sort-btn" id="sortClientsBtn" onclick="sortClients()" style="display:none;margin-bottom:4px;">A→Z Sort</button>
+      <div class="page-header-actions">
+        <button class="btn btn-outline btn-sm" id="sortClientsBtn" onclick="sortCurrent('name')" style="display:none">A→Z Sort</button>
+      </div>
     </div>
     <div class="clients-grid" id="clientsGrid"></div>
   </div>
 
-  <div id="clientView" style="display:none">
-    <div class="breadcrumb">
-      <span class="bc-item" onclick="goHome()">All Clients</span>
-      <span class="bc-sep">›</span>
-      <span class="bc-item active" id="bcName"></span>
-    </div>
-    <div class="section-bar">
-      <div>
-        <div class="page-title" id="cvTitle"></div>
-        <div class="page-sub" id="linkSub"></div>
+  <!-- DETAIL VIEW (client or folder) -->
+  <div id="detailView" style="display:none">
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-title" id="dvTitle"></div>
+        <div class="page-sub" id="dvSub"></div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button class="btn btn-outline btn-sm sort-btn" id="sortLinksBtn" onclick="sortLinks()" style="display:none;">A→Z Sort</button>
-        <div id="clientDelBtn" style="display:none">
-          <button class="btn btn-danger btn-sm" onclick="deleteCurrentClient()">Delete Client</button>
-        </div>
-      </div>
+      <div class="page-header-actions" id="dvActions"></div>
     </div>
-    <div class="links-grid" id="linksGrid"></div>
+    <div id="dvContent"></div>
   </div>
 </main>
 
@@ -514,17 +213,23 @@
 <div class="modal-overlay" id="clientModal">
   <div class="modal">
     <div class="modal-title" id="cmTitle">Add Client</div>
-    <div class="form-group">
-      <label>Name</label>
-      <input type="text" id="cmName" placeholder="e.g. Acme Corp">
-    </div>
-    <div class="form-group">
-      <label>Colour</label>
-      <div class="color-row" id="cmColors"></div>
-    </div>
+    <div class="form-group"><label>Name</label><input type="text" id="cmName" placeholder="e.g. Acme Corp"></div>
+    <div class="form-group"><label>Colour</label><div class="color-row" id="cmColors"></div></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('clientModal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveClient()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Folder Modal -->
+<div class="modal-overlay" id="folderModal">
+  <div class="modal">
+    <div class="modal-title" id="fmTitle">Add Folder</div>
+    <div class="form-group"><label>Folder Name</label><input type="text" id="fmName" placeholder="e.g. Invoices, Socials…"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('folderModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveFolder()">Save</button>
     </div>
   </div>
 </div>
@@ -533,14 +238,8 @@
 <div class="modal-overlay" id="linkModal">
   <div class="modal">
     <div class="modal-title" id="lmTitle">Add Link</div>
-    <div class="form-group">
-      <label>Display Name</label>
-      <input type="text" id="lmName" placeholder="e.g. Gmail, Dashboard">
-    </div>
-    <div class="form-group">
-      <label>URL</label>
-      <input type="url" id="lmUrl" placeholder="https://...">
-    </div>
+    <div class="form-group"><label>Display Name</label><input type="text" id="lmName" placeholder="e.g. Gmail, Dashboard"></div>
+    <div class="form-group"><label>URL</label><input type="url" id="lmUrl" placeholder="https://..."></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('linkModal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveLink()">Save</button>
@@ -550,80 +249,91 @@
 
 <!-- FOOTER -->
 <div class="footer">
-  <button class="footer-btn" id="darkBtn" onclick="toggleDark()" title="Toggle dark mode">
-    <span class="fbicon" id="darkIcon">🌙</span> <span id="darkLabel">Dark mode</span>
-  </button>
-  <button class="footer-btn" onclick="exportData()" title="Export your data as a JSON file">
-    <span class="fbicon">⬇</span> Export
-  </button>
-  <button class="footer-btn" onclick="document.getElementById('importInput').click()" title="Import a previously exported JSON file">
-    <span class="fbicon">⬆</span> Import
-  </button>
+  <button class="footer-btn" onclick="toggleDark()"><span class="fbicon" id="darkIcon">🌙</span> <span id="darkLabel">Dark mode</span></button>
+  <button class="footer-btn" onclick="exportData()"><span class="fbicon">⬇</span> Export</button>
+  <button class="footer-btn" onclick="document.getElementById('importInput').click()"><span class="fbicon">⬆</span> Import</button>
   <input type="file" id="importInput" accept=".json,application/json" onchange="importData(event)">
 </div>
-
 <div class="toast" id="toast"></div>
 
 <script>
-const COLORS = ['#c96442','#9b6b4a','#5c7a6b','#7a6b9b','#6b8a9b','#9b8a5c','#7a4a6b','#4a7a5c','#9b4a4a','#5c6b9b'];
-const PALETTES = [
-  {color:'#c96442',bg:'#f5e8e2'},{color:'#5c7a6b',bg:'#e6f0ec'},
-  {color:'#7a6b9b',bg:'#ece8f5'},{color:'#9b6b4a',bg:'#f5ece4'},
-  {color:'#6b8a9b',bg:'#e4ecf0'},{color:'#9b8a5c',bg:'#f5f0e4'},
-];
+/* ─── DATA HELPERS ─────────────────────────────────────────────────────── */
+// Data shape: { clients: [{ id, name, color, folders: [{ id, name, links:[] }], links: [] }] }
+// "nav" is a stack: [] = home, [clientId] = client root, [clientId, folderId] = inside folder
 
-let db = JSON.parse(localStorage.getItem('chub3') || 'null') || { clients: [] };
-let editMode = false, currentId = null, editingCid = null, editingLid = null, linkClientId = null;
+const COLORS  = ['#c96442','#9b6b4a','#5c7a6b','#7a6b9b','#6b8a9b','#9b8a5c','#7a4a6b','#4a7a5c','#9b4a4a','#5c6b9b'];
+const PALETTES = [{color:'#c96442',bg:'#f5e8e2'},{color:'#5c7a6b',bg:'#e6f0ec'},{color:'#7a6b9b',bg:'#ece8f5'},{color:'#9b6b4a',bg:'#f5ece4'},{color:'#6b8a9b',bg:'#e4ecf0'},{color:'#9b8a5c',bg:'#f5f0e4'}];
 
-function save() { localStorage.setItem('chub3', JSON.stringify(db)); }
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function faviconUrl(url) {
-  try {
-    const domain = new URL(url).hostname;
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-  } catch { return ''; }
-}
-
-function faviconFallback(img, url) {
-  // Try sources in order: Google (sz=64) → direct favicon.ico → give up
-  const sources = [];
-  try {
-    const domain = new URL(url).hostname;
-    const origin = new URL(url).origin;
-    sources.push(`https://www.google.com/s2/favicons?domain=${domain}&sz=64`);
-    sources.push(`https://icons.duckduckgo.com/ip3/${domain}.ico`);
-    sources.push(`${origin}/favicon.ico`);
-    sources.push(`${origin}/favicon.png`);
-  } catch { img.style.display = 'none'; return; }
-
-  let idx = (img._fbIdx || 0);
-  if (idx >= sources.length) { img.style.display = 'none'; return; }
-  img._fbIdx = idx + 1;
-  img.src = sources[idx];
-}
-
-function onFaviconLoad(img) {
-  // Google returns a 16x16 grey globe for unknown sites — hide it
-  if (img.naturalWidth <= 16 && img.naturalHeight <= 16) {
-    faviconFallback(img, img.dataset.url);
-  } else {
-    img.classList.add('loaded');
+let db = JSON.parse(localStorage.getItem('chub4') || 'null') || { clients: [] };
+// Migrate old data (chub3) if present and chub4 is empty
+if (!db.clients.length) {
+  const old = JSON.parse(localStorage.getItem('chub3') || 'null');
+  if (old && old.clients && old.clients.length) {
+    db.clients = old.clients.map(c => ({ ...c, folders: c.folders || [] }));
+    save();
   }
 }
 
+let editMode = false;
+let nav = []; // navigation stack
+let editingCid = null, editingFid = null, editingLid = null;
+let contextClientId = null, contextFolderId = null;
+
+function save() { localStorage.setItem('chub4', JSON.stringify(db)); }
+function uid()  { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function getClient(cid) { return db.clients.find(x => x.id === cid); }
+function getFolder(cid, fid) { return getClient(cid)?.folders?.find(x => x.id === fid); }
+
+// Returns the current container object and its links/folders based on nav
+function getCurrentContext() {
+  if (!nav.length) return null;
+  const client = getClient(nav[0]);
+  if (!client) return null;
+  if (nav.length === 1) return client;
+  const folder = getFolder(nav[0], nav[1]);
+  return folder || null;
+}
+
+/* ─── FAVICON ──────────────────────────────────────────────────────────── */
+function faviconUrl(url) {
+  try { return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32`; }
+  catch { return ''; }
+}
+function faviconFallback(img, url) {
+  const sources = [];
+  try {
+    const {hostname: d, origin: o} = new URL(url);
+    sources.push(`https://www.google.com/s2/favicons?domain=${d}&sz=64`, `https://icons.duckduckgo.com/ip3/${d}.ico`, `${o}/favicon.ico`, `${o}/favicon.png`);
+  } catch { img.style.display='none'; return; }
+  const idx = img._fbIdx || 0;
+  if (idx >= sources.length) { img.style.display='none'; return; }
+  img._fbIdx = idx + 1; img.src = sources[idx];
+}
+function onFaviconLoad(img) {
+  if (img.naturalWidth <= 16 && img.naturalHeight <= 16) faviconFallback(img, img.dataset.url);
+  else img.classList.add('loaded');
+}
+
+/* ─── TOAST ────────────────────────────────────────────────────────────── */
 function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-function render() { currentId ? renderClient() : renderHome(); }
+/* ─── RENDER ────────────────────────────────────────────────────────────── */
+function render() {
+  if (!nav.length) renderHome();
+  else renderDetail();
+}
 
 function renderHome() {
   document.getElementById('homeView').style.display = '';
-  document.getElementById('clientView').style.display = 'none';
+  document.getElementById('detailView').style.display = 'none';
   document.getElementById('backBtn').style.display = 'none';
+  document.getElementById('sortClientsBtn').style.display = editMode ? '' : 'none';
   const n = db.clients.length;
   document.getElementById('clientSub').textContent = n === 0 ? 'No clients added yet' : `${n} client${n!==1?'s':''}`;
   const grid = document.getElementById('clientsGrid');
@@ -634,7 +344,9 @@ function renderHome() {
     div.style.setProperty('--card-color', c.color);
     div.style.animationDelay = `${i*0.045}s`;
     div.dataset.id = c.id;
-    if (editMode) div.setAttribute('draggable', 'true');
+    if (editMode) div.setAttribute('draggable','true');
+    const totalLinks = (c.links||[]).length + (c.folders||[]).reduce((s,f)=>s+f.links.length,0);
+    const folderCount = (c.folders||[]).length;
     div.innerHTML = `
       <div class="drag-handle" title="Drag to reorder">⠿</div>
       <div class="card-controls">
@@ -643,180 +355,328 @@ function renderHome() {
       </div>
       <div class="client-icon">${c.name[0].toUpperCase()}</div>
       <div class="client-name">${esc(c.name)}</div>
-      <div class="client-count">${c.links.length} link${c.links.length!==1?'s':''}</div>`;
-    div.onclick = () => { if (!dragMoved) openClient(c.id); };
+      <div class="client-count">${folderCount ? folderCount+' folder'+(folderCount!==1?'s':'')+' · ' : ''}${totalLinks} link${totalLinks!==1?'s':''}</div>`;
+    div.onclick = () => { if (!dragMoved) { nav=[c.id]; render(); }};
     grid.appendChild(div);
   });
-  if (editMode) initDrag(grid, 'clients', null);
   if (editMode) {
     const add = document.createElement('div');
     add.className = 'add-card';
     add.innerHTML = `<div class="add-circle">+</div><span>Add Client</span>`;
     add.onclick = openAddClient;
     grid.appendChild(add);
+    initDrag(grid, 'client', null, null);
   } else if (n === 0) {
     grid.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No clients yet</div><p class="empty-desc">Click <strong>Edit</strong> to add your first client.</p></div>`;
   }
 }
 
-function renderClient() {
-  const c = db.clients.find(x => x.id === currentId);
-  if (!c) { goHome(); return; }
+function renderDetail() {
   document.getElementById('homeView').style.display = 'none';
-  document.getElementById('clientView').style.display = '';
+  document.getElementById('detailView').style.display = '';
   document.getElementById('backBtn').style.display = '';
-  document.getElementById('bcName').textContent = c.name;
-  document.getElementById('cvTitle').innerHTML = `<em>${esc(c.name)}</em>`;
-  document.getElementById('linkSub').textContent = `${c.links.length} link${c.links.length!==1?'s':''}`;
-  document.getElementById('clientDelBtn').style.display = editMode ? '' : 'none';
-  const grid = document.getElementById('linksGrid');
-  grid.innerHTML = '';
-  c.links.forEach((l, i) => {
-    const pal = PALETTES[i % PALETTES.length];
-    const div = document.createElement('div');
-    div.className = 'link-card';
-    div.style.setProperty('--link-color', pal.color);
-    div.style.setProperty('--link-bg', pal.bg);
-    div.style.animationDelay = `${i*0.04}s`;
-    div.dataset.id = l.id;
-    if (editMode) div.setAttribute('draggable', 'true');
-    div.innerHTML = `
-      <a class="link-card-overlay" href="${esc(l.url)}" target="_blank" rel="noopener"></a>
-      <div class="drag-handle" title="Drag to reorder">⠿</div>
-      <div class="card-controls">
-        <button class="ic-btn" onclick="event.stopPropagation();openEditLink('${c.id}','${l.id}')" title="Edit">✏</button>
-        <button class="ic-btn del" onclick="event.stopPropagation();deleteLink('${c.id}','${l.id}')" title="Delete">✕</button>
-      </div>
-      <div class="link-favicon-row">
-        <img class="link-favicon" src="${faviconUrl(l.url)}" data-url="${esc(l.url)}" alt="" loading="lazy"
-          onload="onFaviconLoad(this)"
-          onerror="faviconFallback(this, this.dataset.url)">
-        <span class="link-name">${esc(l.name)}</span>
-      </div>
-      <div class="link-url">${esc(l.url)}</div>
-      <div class="link-arrow">↗</div>`;
-    grid.appendChild(div);
-  });
-  if (editMode) initDrag(grid, 'links', c.id);
+  document.getElementById('sortClientsBtn').style.display = 'none';
+
+  const client = getClient(nav[0]);
+  if (!client) { nav=[]; render(); return; }
+
+  const isFolder = nav.length === 2;
+  const container = isFolder ? getFolder(nav[0], nav[1]) : client;
+  if (!container) { nav=[nav[0]]; render(); return; }
+
+  // Breadcrumb
+  const bc = document.getElementById('breadcrumb');
+  bc.innerHTML = '';
+  const addBc = (label, onclick, active=false) => {
+    const s = document.createElement('span');
+    s.className = 'bc-item' + (active ? ' active' : '');
+    s.textContent = label;
+    if (!active) s.onclick = onclick;
+    bc.appendChild(s);
+    if (!active) { const sep = document.createElement('span'); sep.className='bc-sep'; sep.textContent='›'; bc.appendChild(sep); }
+  };
+  addBc('All Clients', () => { nav=[]; render(); });
+  if (isFolder) addBc(client.name, () => { nav=[nav[0]]; render(); });
+  addBc(container.name, null, true);
+
+  // Title
+  document.getElementById('dvTitle').innerHTML = `<em>${esc(container.name)}</em>`;
+
+  const folders = isFolder ? [] : (client.folders || []);
+  const links   = container.links || [];
+  const totalItems = folders.length + links.length;
+  document.getElementById('dvSub').textContent = [
+    folders.length ? `${folders.length} folder${folders.length!==1?'s':''}` : '',
+    links.length   ? `${links.length} link${links.length!==1?'s':''}`       : ''
+  ].filter(Boolean).join(' · ') || 'Empty';
+
+  // Actions bar
+  const acts = document.getElementById('dvActions');
+  acts.innerHTML = '';
   if (editMode) {
-    const add = document.createElement('div');
-    add.className = 'add-link-card';
-    add.innerHTML = `<span style="font-size:18px;line-height:1">+</span> Add Link`;
-    add.onclick = () => openAddLink(c.id);
-    grid.appendChild(add);
-  } else if (c.links.length === 0) {
-    grid.innerHTML = `<div class="empty"><div class="empty-icon">🔗</div><div class="empty-title">No links yet</div><p class="empty-desc">Enable edit mode to add links.</p></div>`;
+    if (!isFolder) {
+      const sb = document.createElement('button');
+      sb.className = 'btn btn-outline btn-sm';
+      sb.textContent = 'A→Z Sort';
+      sb.onclick = () => sortCurrent('name');
+      acts.appendChild(sb);
+    }
+    const db2 = document.createElement('button');
+    db2.className = 'btn btn-danger btn-sm';
+    db2.textContent = isFolder ? 'Delete Folder' : 'Delete Client';
+    db2.onclick = isFolder ? deleteCurrentFolder : deleteCurrentClient;
+    acts.appendChild(db2);
+  }
+
+  // Content
+  const content = document.getElementById('dvContent');
+  content.innerHTML = '';
+
+  // Folders section (only at client root level)
+  if (!isFolder) {
+    if (folders.length || editMode) {
+      if (links.length || editMode) {
+        const div = document.createElement('div');
+        div.className = 'section-divider';
+        div.innerHTML = 'Folders';
+        content.appendChild(div);
+      }
+      const fgrid = document.createElement('div');
+      fgrid.className = 'clients-grid';
+      fgrid.id = 'foldersGrid';
+      folders.forEach((f, i) => {
+        const div = document.createElement('div');
+        div.className = 'folder-card';
+        div.style.animationDelay = `${i*0.04}s`;
+        div.dataset.id = f.id;
+        if (editMode) div.setAttribute('draggable','true');
+        div.innerHTML = `
+          <div class="drag-handle" title="Drag to reorder">⠿</div>
+          <div class="card-controls">
+            <button class="ic-btn" onclick="event.stopPropagation();openEditFolder('${client.id}','${f.id}')" title="Edit">✏</button>
+            <button class="ic-btn del" onclick="event.stopPropagation();deleteFolder('${client.id}','${f.id}')" title="Delete">✕</button>
+          </div>
+          <div class="folder-icon">📁</div>
+          <div class="folder-name">${esc(f.name)}</div>
+          <div class="folder-count">${f.links.length} link${f.links.length!==1?'s':''}</div>`;
+        div.onclick = () => { if (!dragMoved) { nav=[nav[0], f.id]; render(); }};
+        fgrid.appendChild(div);
+      });
+      if (editMode) {
+        const add = document.createElement('div');
+        add.className = 'add-folder-card';
+        add.innerHTML = `<span style="font-size:20px">📂</span> Add Folder`;
+        add.onclick = () => openAddFolder(client.id);
+        fgrid.appendChild(add);
+        initDrag(fgrid, 'folder', client.id, null);
+      }
+      content.appendChild(fgrid);
+    }
+  }
+
+  // Links section
+  if (links.length || editMode) {
+    if (!isFolder && (folders.length || editMode)) {
+      const div = document.createElement('div');
+      div.className = 'section-divider';
+      div.innerHTML = 'Links';
+      content.appendChild(div);
+    }
+    const lgrid = document.createElement('div');
+    lgrid.className = 'links-grid';
+    lgrid.id = 'linksGrid';
+    links.forEach((l, i) => {
+      const pal = PALETTES[i % PALETTES.length];
+      const div = document.createElement('div');
+      div.className = 'link-card';
+      div.style.setProperty('--link-color', pal.color);
+      div.style.setProperty('--link-bg', pal.bg);
+      div.style.animationDelay = `${i*0.04}s`;
+      div.dataset.id = l.id;
+      if (editMode) div.setAttribute('draggable','true');
+      div.innerHTML = `
+        <a class="link-card-overlay" href="${esc(l.url)}" target="_blank" rel="noopener"></a>
+        <div class="drag-handle" title="Drag to reorder">⠿</div>
+        <div class="card-controls">
+          <button class="ic-btn" onclick="event.stopPropagation();openEditLink('${esc(l.id)}')" title="Edit">✏</button>
+          <button class="ic-btn del" onclick="event.stopPropagation();deleteLink('${esc(l.id)}')" title="Delete">✕</button>
+        </div>
+        <div class="link-favicon-row">
+          <img class="link-favicon" src="${faviconUrl(l.url)}" data-url="${esc(l.url)}" alt="" loading="lazy" onload="onFaviconLoad(this)" onerror="faviconFallback(this,this.dataset.url)">
+          <span class="link-name">${esc(l.name)}</span>
+        </div>
+        <div class="link-url">${esc(l.url)}</div>
+        <div class="link-arrow">↗</div>`;
+      lgrid.appendChild(div);
+    });
+    if (editMode) {
+      const add = document.createElement('div');
+      add.className = 'add-link-card';
+      add.innerHTML = `<span style="font-size:18px;line-height:1">+</span> Add Link`;
+      add.onclick = openAddLink;
+      lgrid.appendChild(add);
+      initDrag(lgrid, 'link', nav[0], nav[1] || null);
+    }
+    content.appendChild(lgrid);
+  }
+
+  if (!editMode && totalItems === 0) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">🔗</div><div class="empty-title">Nothing here yet</div><p class="empty-desc">Enable edit mode to add folders and links.</p></div>`;
   }
 }
 
-function goHome() { currentId = null; document.getElementById('sortLinksBtn').style.display = 'none'; render(); }
-function openClient(id) { currentId = id; document.getElementById('sortLinksBtn').style.display = editMode ? '' : 'none'; render(); }
+/* ─── NAVIGATION ────────────────────────────────────────────────────────── */
+function goBack() {
+  if (nav.length > 1) { nav = [nav[0]]; render(); }
+  else { nav = []; render(); }
+}
 
+/* ─── EDIT MODE ─────────────────────────────────────────────────────────── */
 function toggleEdit() {
   editMode = !editMode;
   document.getElementById('editBtn').textContent = editMode ? '✓ Done' : '✏ Edit';
   document.getElementById('editBtn').className = editMode ? 'btn btn-editing' : 'btn btn-outline';
   document.getElementById('editPill').style.display = editMode ? 'inline-flex' : 'none';
   document.body.classList.toggle('edit-mode', editMode);
-  document.getElementById('sortClientsBtn').style.display = editMode ? '' : 'none';
-  document.getElementById('sortLinksBtn').style.display = (editMode && currentId) ? '' : 'none';
   render();
 }
 
+/* ─── SORT ───────────────────────────────────────────────────────────────── */
+function sortCurrent(by) {
+  if (!nav.length) {
+    db.clients.sort((a,b) => a.name.localeCompare(b.name));
+    save(); render(); toast('Clients sorted A→Z');
+  } else {
+    const ctx = getCurrentContext();
+    if (!ctx) return;
+    (ctx.links||[]).sort((a,b) => a.name.localeCompare(b.name));
+    if (!nav[1]) (ctx.folders||[]).sort((a,b) => a.name.localeCompare(b.name));
+    save(); render(); toast('Sorted A→Z');
+  }
+}
+
+/* ─── CLIENT CRUD ───────────────────────────────────────────────────────── */
 function buildSwatches(sel) {
   const wrap = document.getElementById('cmColors');
   wrap.innerHTML = '';
   COLORS.forEach(c => {
     const s = document.createElement('div');
-    s.className = 'swatch' + (c === sel ? ' selected' : '');
-    s.style.background = c;
-    s.dataset.c = c;
-    s.onclick = () => { wrap.querySelectorAll('.swatch').forEach(x => x.classList.remove('selected')); s.classList.add('selected'); };
+    s.className = 'swatch' + (c===sel?' selected':'');
+    s.style.background = c; s.dataset.c = c;
+    s.onclick = () => { wrap.querySelectorAll('.swatch').forEach(x=>x.classList.remove('selected')); s.classList.add('selected'); };
     wrap.appendChild(s);
   });
 }
-
 function openAddClient() {
   editingCid = null;
   document.getElementById('cmTitle').textContent = 'Add Client';
   document.getElementById('cmName').value = '';
-  buildSwatches(COLORS[0]);
-  openModal('clientModal');
+  buildSwatches(COLORS[0]); openModal('clientModal');
 }
-
 function openEditClient(id) {
   editingCid = id;
-  const c = db.clients.find(x => x.id === id);
+  const c = getClient(id);
   document.getElementById('cmTitle').textContent = 'Edit Client';
   document.getElementById('cmName').value = c.name;
-  buildSwatches(c.color);
-  openModal('clientModal');
+  buildSwatches(c.color); openModal('clientModal');
 }
-
 function saveClient() {
   const name = document.getElementById('cmName').value.trim();
   if (!name) { document.getElementById('cmName').focus(); return; }
   const color = document.querySelector('.swatch.selected')?.dataset.c || COLORS[0];
   if (editingCid) {
-    const c = db.clients.find(x => x.id === editingCid);
-    c.name = name; c.color = color; toast('Client updated');
+    const c = getClient(editingCid); c.name = name; c.color = color; toast('Client updated');
   } else {
-    db.clients.push({ id: uid(), name, color, links: [] }); toast('Client added');
+    db.clients.push({ id:uid(), name, color, folders:[], links:[] }); toast('Client added');
   }
   save(); closeModal('clientModal'); render();
 }
-
 function deleteClient(id) {
-  if (!confirm('Delete this client and all their links?')) return;
+  if (!confirm('Delete this client and everything inside?')) return;
   db.clients = db.clients.filter(c => c.id !== id);
   save(); toast('Client deleted'); render();
 }
-
 function deleteCurrentClient() {
-  if (!confirm('Delete this client and all their links?')) return;
-  db.clients = db.clients.filter(c => c.id !== currentId);
-  save(); toast('Client deleted'); goHome();
+  if (!confirm('Delete this client and everything inside?')) return;
+  db.clients = db.clients.filter(c => c.id !== nav[0]);
+  save(); toast('Client deleted'); nav=[]; render();
 }
 
-function openAddLink(cid) {
-  linkClientId = cid; editingLid = null;
+/* ─── FOLDER CRUD ───────────────────────────────────────────────────────── */
+function openAddFolder(cid) {
+  editingFid = null; contextClientId = cid;
+  document.getElementById('fmTitle').textContent = 'Add Folder';
+  document.getElementById('fmName').value = '';
+  openModal('folderModal');
+}
+function openEditFolder(cid, fid) {
+  editingFid = fid; contextClientId = cid;
+  const f = getFolder(cid, fid);
+  document.getElementById('fmTitle').textContent = 'Edit Folder';
+  document.getElementById('fmName').value = f.name;
+  openModal('folderModal');
+}
+function saveFolder() {
+  const name = document.getElementById('fmName').value.trim();
+  if (!name) { document.getElementById('fmName').focus(); return; }
+  const c = getClient(contextClientId);
+  if (!c.folders) c.folders = [];
+  if (editingFid) {
+    const f = getFolder(contextClientId, editingFid); f.name = name; toast('Folder updated');
+  } else {
+    c.folders.push({ id:uid(), name, links:[] }); toast('Folder added');
+  }
+  save(); closeModal('folderModal'); render();
+}
+function deleteFolder(cid, fid) {
+  if (!confirm('Delete this folder and all its links?')) return;
+  const c = getClient(cid); c.folders = c.folders.filter(f => f.id !== fid);
+  save(); toast('Folder deleted'); render();
+}
+function deleteCurrentFolder() {
+  if (!confirm('Delete this folder and all its links?')) return;
+  const c = getClient(nav[0]); c.folders = c.folders.filter(f => f.id !== nav[1]);
+  save(); toast('Folder deleted'); nav=[nav[0]]; render();
+}
+
+/* ─── LINK CRUD ─────────────────────────────────────────────────────────── */
+function openAddLink() {
+  editingLid = null;
   document.getElementById('lmTitle').textContent = 'Add Link';
   document.getElementById('lmName').value = '';
   document.getElementById('lmUrl').value = '';
   openModal('linkModal');
 }
-
-function openEditLink(cid, lid) {
-  linkClientId = cid; editingLid = lid;
-  const c = db.clients.find(x => x.id === cid);
-  const l = c.links.find(x => x.id === lid);
+function openEditLink(lid) {
+  editingLid = lid;
+  const ctx = getCurrentContext();
+  const l = ctx.links.find(x => x.id === lid);
   document.getElementById('lmTitle').textContent = 'Edit Link';
   document.getElementById('lmName').value = l.name;
   document.getElementById('lmUrl').value = l.url;
   openModal('linkModal');
 }
-
 function saveLink() {
   const name = document.getElementById('lmName').value.trim();
   let url = document.getElementById('lmUrl').value.trim();
   if (!name || !url) return;
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-  const c = db.clients.find(x => x.id === linkClientId);
+  const ctx = getCurrentContext();
+  if (!ctx.links) ctx.links = [];
   if (editingLid) {
-    const l = c.links.find(x => x.id === editingLid);
-    l.name = name; l.url = url; toast('Link updated');
+    const l = ctx.links.find(x => x.id === editingLid); l.name = name; l.url = url; toast('Link updated');
   } else {
-    c.links.push({ id: uid(), name, url }); toast('Link added');
+    ctx.links.push({ id:uid(), name, url }); toast('Link added');
   }
   save(); closeModal('linkModal'); render();
 }
-
-function deleteLink(cid, lid) {
-  const c = db.clients.find(x => x.id === cid);
-  c.links = c.links.filter(l => l.id !== lid);
+function deleteLink(lid) {
+  const ctx = getCurrentContext();
+  ctx.links = ctx.links.filter(l => l.id !== lid);
   save(); toast('Link removed'); render();
 }
 
+/* ─── MODAL UTILS ───────────────────────────────────────────────────────── */
 function openModal(id) {
   document.getElementById(id).classList.add('open');
   setTimeout(() => document.querySelector(`#${id} input`)?.focus(), 200);
@@ -824,138 +684,89 @@ function openModal(id) {
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 document.querySelectorAll('.modal-overlay').forEach(o =>
-  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); })
+  o.addEventListener('click', e => { if (e.target===o) o.classList.remove('open'); })
 );
-document.getElementById('cmName').addEventListener('keydown', e => { if (e.key === 'Enter') saveClient(); });
-document.getElementById('lmUrl').addEventListener('keydown', e => { if (e.key === 'Enter') saveLink(); });
+document.getElementById('cmName').addEventListener('keydown', e => { if (e.key==='Enter') saveClient(); });
+document.getElementById('fmName').addEventListener('keydown', e => { if (e.key==='Enter') saveFolder(); });
+document.getElementById('lmUrl').addEventListener('keydown',  e => { if (e.key==='Enter') saveLink(); });
 
-/* ── DARK MODE ── */
+/* ─── DARK MODE ─────────────────────────────────────────────────────────── */
 let darkMode = localStorage.getItem('chub-dark') === '1';
 function applyDark() {
   document.body.classList.toggle('dark', darkMode);
   document.getElementById('darkIcon').textContent = darkMode ? '☀️' : '🌙';
   document.getElementById('darkLabel').textContent = darkMode ? 'Light mode' : 'Dark mode';
 }
-function toggleDark() {
-  darkMode = !darkMode;
-  localStorage.setItem('chub-dark', darkMode ? '1' : '0');
-  applyDark();
-}
+function toggleDark() { darkMode=!darkMode; localStorage.setItem('chub-dark',darkMode?'1':'0'); applyDark(); }
 applyDark();
 
-/* ── EXPORT ── */
+/* ─── EXPORT / IMPORT ───────────────────────────────────────────────────── */
 function exportData() {
   const json = JSON.stringify(db, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
+  const blob = new Blob([json],{type:'application/json'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'clienthub-export.json'; a.click();
-  URL.revokeObjectURL(url);
-  toast('Data exported!');
+  const a = document.createElement('a'); a.href=url; a.download='clienthub-export.json'; a.click();
+  URL.revokeObjectURL(url); toast('Data exported!');
 }
-
-/* ── IMPORT ── */
 function importData(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
     try {
       const parsed = JSON.parse(ev.target.result);
       if (!parsed.clients || !Array.isArray(parsed.clients)) throw new Error();
       if (!confirm(`Replace current data with ${parsed.clients.length} client(s) from file?`)) return;
-      db = parsed; save(); render();
-      toast('Data imported successfully!');
-    } catch { alert('Could not read file. Make sure it is a valid Client Hub export.'); }
+      db = parsed; save(); nav=[]; render(); toast('Imported successfully!');
+    } catch { alert('Could not read file — make sure it is a valid Client Hub export.'); }
   };
-  reader.readAsText(file);
-  e.target.value = '';
+  reader.readAsText(file); e.target.value='';
 }
 
-/* ── SORT ── */
-function sortClients() {
-  db.clients.sort((a, b) => a.name.localeCompare(b.name));
-  save(); render(); toast('Clients sorted A→Z');
-}
-
-function sortLinks() {
-  const c = db.clients.find(x => x.id === currentId);
-  if (!c) return;
-  c.links.sort((a, b) => a.name.localeCompare(b.name));
-  save(); render(); toast('Links sorted A→Z');
-}
-
-/* ── DRAG & DROP ── */
+/* ─── DRAG & DROP ───────────────────────────────────────────────────────── */
 let dragMoved = false;
 
-function initDrag(grid, type, clientId) {
+function initDrag(grid, type, clientId, folderId) {
   let dragSrc = null;
-
-  const getCards = () => [...grid.querySelectorAll(type === 'clients' ? '.client-card' : '.link-card')];
-
-  function clearIndicators() {
-    getCards().forEach(c => c.classList.remove('drop-before', 'drop-after'));
-  }
+  const sel = type==='client' ? '.client-card' : type==='folder' ? '.folder-card' : '.link-card';
+  const getCards = () => [...grid.querySelectorAll(sel)];
+  const clearInd = () => getCards().forEach(c=>c.classList.remove('drop-before','drop-after'));
 
   grid.addEventListener('dragstart', e => {
-    const card = e.target.closest(type === 'clients' ? '.client-card' : '.link-card');
-    if (!card) return;
-    dragSrc = card;
-    dragMoved = false;
-    setTimeout(() => card.classList.add('card-dragging'), 0);
-    e.dataTransfer.effectAllowed = 'move';
+    const card = e.target.closest(sel); if (!card) return;
+    dragSrc = card; dragMoved = false;
+    setTimeout(()=>card.classList.add('card-dragging'),0);
+    e.dataTransfer.effectAllowed='move';
     e.dataTransfer.setData('text/plain', card.dataset.id);
   });
-
-  grid.addEventListener('drag', () => { dragMoved = true; });
-
-  grid.addEventListener('dragend', () => {
+  grid.addEventListener('drag', ()=>{ dragMoved=true; });
+  grid.addEventListener('dragend', ()=>{
     if (dragSrc) dragSrc.classList.remove('card-dragging');
-    clearIndicators();
-    dragSrc = null;
-    setTimeout(() => { dragMoved = false; }, 50);
+    clearInd(); dragSrc=null; setTimeout(()=>{ dragMoved=false; },50);
   });
-
-  grid.addEventListener('dragover', e => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    const card = e.target.closest(type === 'clients' ? '.client-card' : '.link-card');
-    clearIndicators();
-    if (!card || card === dragSrc) return;
-    const rect = card.getBoundingClientRect();
-    card.classList.add(e.clientX < rect.left + rect.width / 2 ? 'drop-before' : 'drop-after');
+  grid.addEventListener('dragover', e=>{
+    e.preventDefault(); e.dataTransfer.dropEffect='move';
+    const card = e.target.closest(sel); clearInd();
+    if (!card||card===dragSrc) return;
+    const {left,width} = card.getBoundingClientRect();
+    card.classList.add(e.clientX < left+width/2 ? 'drop-before' : 'drop-after');
   });
-
-  grid.addEventListener('dragleave', e => {
-    if (!grid.contains(e.relatedTarget)) clearIndicators();
-  });
-
-  grid.addEventListener('drop', e => {
-    e.preventDefault();
-    clearIndicators();
-    const card = e.target.closest(type === 'clients' ? '.client-card' : '.link-card');
-    if (!card || card === dragSrc || !dragSrc) return;
-    const rect = card.getBoundingClientRect();
-    const before = e.clientX < rect.left + rect.width / 2;
-    if (type === 'clients') {
-      const arr = db.clients;
-      const fi = arr.findIndex(c => c.id === dragSrc.dataset.id);
-      const ti = arr.findIndex(c => c.id === card.dataset.id);
-      if (fi === -1 || ti === -1) return;
-      const [item] = arr.splice(fi, 1);
-      const ni = arr.findIndex(c => c.id === card.dataset.id);
-      arr.splice(before ? ni : ni + 1, 0, item);
-    } else {
-      const arr = db.clients.find(x => x.id === clientId).links;
-      const fi = arr.findIndex(l => l.id === dragSrc.dataset.id);
-      const ti = arr.findIndex(l => l.id === card.dataset.id);
-      if (fi === -1 || ti === -1) return;
-      const [item] = arr.splice(fi, 1);
-      const ni = arr.findIndex(l => l.id === card.dataset.id);
-      arr.splice(before ? ni : ni + 1, 0, item);
-    }
-    save();
-    render();
+  grid.addEventListener('dragleave', e=>{ if (!grid.contains(e.relatedTarget)) clearInd(); });
+  grid.addEventListener('drop', e=>{
+    e.preventDefault(); clearInd();
+    const card = e.target.closest(sel);
+    if (!card||card===dragSrc||!dragSrc) return;
+    const before = e.clientX < card.getBoundingClientRect().left + card.getBoundingClientRect().width/2;
+    let arr;
+    if (type==='client') arr = db.clients;
+    else if (type==='folder') arr = getClient(clientId).folders;
+    else if (folderId) arr = getFolder(clientId, folderId).links;
+    else arr = getClient(clientId).links;
+    const fi = arr.findIndex(x=>x.id===dragSrc.dataset.id);
+    if (fi===-1) return;
+    const [item] = arr.splice(fi,1);
+    const ni = arr.findIndex(x=>x.id===card.dataset.id);
+    arr.splice(before ? ni : ni+1, 0, item);
+    save(); render();
   });
 }
 
