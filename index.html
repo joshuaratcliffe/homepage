@@ -56,50 +56,53 @@
   .search-wrap {
     position: relative;
     margin-bottom: 32px;
-  }
-  .search-icon {
-    position: absolute;
-    left: 16px; top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    font-size: 16px;
-    pointer-events: none;
-  }
-  .search-input {
-    width: 100%;
+    display: flex;
+    align-items: center;
     background: var(--surface);
     border: 1px solid var(--border2);
     border-radius: 12px;
-    padding: 13px 16px 13px 44px;
+    box-shadow: 0 1px 3px var(--shadow);
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .search-wrap:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(201,100,66,.1);
+  }
+  .search-icon {
+    padding: 0 10px 0 16px;
+    color: var(--muted);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 13px 0;
     color: var(--text);
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 15px;
     outline: none;
-    box-shadow: 0 1px 3px var(--shadow);
-    transition: border-color .2s, box-shadow .2s;
-  }
-  .search-input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(201,100,66,.1);
   }
   .search-input::placeholder { color: var(--muted); }
   .search-clear {
-    position: absolute;
-    right: 14px; top: 50%;
-    transform: translateY(-50%);
     background: var(--bg2);
     border: none;
     border-radius: 50%;
     width: 22px; height: 22px;
+    margin-right: 12px;
     display: none;
     align-items: center; justify-content: center;
     cursor: pointer;
     color: var(--muted);
     font-size: 13px;
+    flex-shrink: 0;
     transition: all .15s;
   }
   .search-clear:hover { background: var(--border2); color: var(--text); }
-  .search-input:not(:placeholder-shown) ~ .search-clear { display: flex; }
+  .search-wrap:has(.search-input:not(:placeholder-shown)) .search-clear { display: flex; }
 
   /* search results */
   .search-results { display: flex; flex-direction: column; gap: 8px; }
@@ -295,7 +298,7 @@
       </div>
     </div>
     <div class="search-wrap">
-      <span class="search-icon">🔍</span>
+      <span class="search-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
       <input class="search-input" id="searchInput" type="text" placeholder="Search clients, folders, links…" oninput="onSearch(this.value)" autocomplete="off">
       <button class="search-clear" onclick="clearSearch()" title="Clear">✕</button>
     </div>
@@ -954,7 +957,7 @@ function onSearch(q) {
   );
 
   if (!matches.length) {
-    resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🔍</div>No results for "<strong>${esc(searchQuery)}</strong>"</div>`;
+    resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🔎</div>No results for "<strong>${esc(searchQuery)}</strong>"</div>`;
     return;
   }
 
