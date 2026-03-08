@@ -52,6 +52,108 @@
   .page-sub { font-size:14px; color:var(--muted); }
   .page-header-actions { display:flex; gap:8px; align-items:center; flex-shrink:0; margin-bottom:4px; }
 
+  /* ── SEARCH ── */
+  .search-wrap {
+    position: relative;
+    margin-bottom: 32px;
+  }
+  .search-icon {
+    position: absolute;
+    left: 16px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 16px;
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 13px 16px 13px 44px;
+    color: var(--text);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+    box-shadow: 0 1px 3px var(--shadow);
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(201,100,66,.1);
+  }
+  .search-input::placeholder { color: var(--muted); }
+  .search-clear {
+    position: absolute;
+    right: 14px; top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg2);
+    border: none;
+    border-radius: 50%;
+    width: 22px; height: 22px;
+    display: none;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 13px;
+    transition: all .15s;
+  }
+  .search-clear:hover { background: var(--border2); color: var(--text); }
+  .search-input:not(:placeholder-shown) ~ .search-clear { display: flex; }
+
+  /* search results */
+  .search-results { display: flex; flex-direction: column; gap: 8px; }
+  .search-empty { text-align:center; padding: 48px 20px; color: var(--muted); font-size: 14px; }
+  .search-empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+  .sr-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all .18s ease;
+    box-shadow: 0 1px 3px var(--shadow);
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .sr-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--sr-color, var(--accent));
+    border-radius: 12px 0 0 12px;
+  }
+  .sr-item:hover { transform: translateX(3px); box-shadow: 0 4px 16px var(--shadow-lg); border-color: var(--border2); }
+
+  .sr-favicon {
+    width: 20px; height: 20px;
+    border-radius: 5px;
+    flex-shrink: 0;
+    object-fit: contain;
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  .sr-favicon.loaded { opacity: 1; }
+
+  .sr-body { flex: 1; min-width: 0; }
+  .sr-name { font-size: 14.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sr-name mark { background: rgba(201,100,66,.18); color: var(--accent); border-radius: 3px; padding: 0 2px; font-style: normal; }
+  .sr-path { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .sr-path-seg { display: inline-flex; align-items: center; gap: 4px; }
+  .sr-path-sep { opacity: .5; font-size: 10px; }
+  .sr-url { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sr-arrow { color: var(--muted); font-size: 14px; flex-shrink: 0; transition: transform .15s; }
+  .sr-item:hover .sr-arrow { transform: translateX(3px); color: var(--accent); }
+
+  .sr-section-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin: 16px 0 6px; display: flex; align-items: center; gap: 8px; }
+  .sr-section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
   .breadcrumb { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); margin-bottom:32px; flex-wrap:wrap; }
   .bc-item { cursor:pointer; transition:color .15s; }
   .bc-item:hover { color:var(--accent); }
@@ -192,7 +294,13 @@
         <button class="btn btn-outline btn-sm" id="sortClientsBtn" onclick="sortCurrent()" style="display:none">A→Z Sort</button>
       </div>
     </div>
-    <div class="clients-grid" id="clientsGrid"></div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search clients, folders, links…" oninput="onSearch(this.value)" autocomplete="off">
+      <button class="search-clear" onclick="clearSearch()" title="Clear">✕</button>
+    </div>
+    <div id="searchResults" style="display:none"></div>
+    <div id="clientsGrid" class="clients-grid"></div>
   </div>
 
   <!-- DETAIL VIEW (client or folder) -->
@@ -335,6 +443,11 @@ function renderHome() {
   document.getElementById('backBtn').style.display = 'none';
   document.getElementById('sortClientsBtn').style.display = editMode ? '' : 'none';
   document.getElementById('sortClientsBtn').textContent = sortLabel();
+  // Restore grid visibility in case search was active
+  const gridEl = document.getElementById('clientsGrid');
+  const resultsEl = document.getElementById('searchResults');
+  if (gridEl && searchQuery === '') { gridEl.style.display=''; }
+  if (resultsEl && searchQuery === '') { resultsEl.style.display='none'; }
   const n = db.clients.length;
   document.getElementById('clientSub').textContent = n === 0 ? 'No clients added yet' : `${n} client${n!==1?'s':''}`;
   const grid = document.getElementById('clientsGrid');
@@ -783,6 +896,128 @@ function initDrag(grid, type, clientId, folderId) {
     save(); render();
   });
 }
+
+/* ─── SEARCH ────────────────────────────────────────────────────────────── */
+let searchQuery = '';
+
+function clearSearch() {
+  const inp = document.getElementById('searchInput');
+  if (inp) inp.value = '';
+  searchQuery = '';
+  const resultsEl = document.getElementById('searchResults');
+  const grid = document.getElementById('clientsGrid');
+  if (resultsEl) { resultsEl.style.display='none'; resultsEl.innerHTML=''; }
+  if (grid) grid.style.display='';
+}
+
+function highlight(text, query) {
+  if (!query) return esc(text);
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return esc(text);
+  return esc(text.slice(0,idx)) + `<mark>${esc(text.slice(idx,idx+query.length))}</mark>` + esc(text.slice(idx+query.length));
+}
+
+function buildIndex() {
+  const items = [];
+  db.clients.forEach(client => {
+    items.push({ type:'client', name:client.name, clientId:client.id, clientName:client.name, clientColor:client.color, folderId:null, folderName:null, url:null });
+    (client.links||[]).forEach(l => {
+      items.push({ type:'link', name:l.name, url:l.url, clientId:client.id, clientName:client.name, clientColor:client.color, folderId:null, folderName:null });
+    });
+    (client.folders||[]).forEach(folder => {
+      items.push({ type:'folder', name:folder.name, clientId:client.id, clientName:client.name, clientColor:client.color, folderId:folder.id, folderName:folder.name, url:null });
+      (folder.links||[]).forEach(l => {
+        items.push({ type:'link', name:l.name, url:l.url, clientId:client.id, clientName:client.name, clientColor:client.color, folderId:folder.id, folderName:folder.name });
+      });
+    });
+  });
+  return items;
+}
+
+function onSearch(q) {
+  searchQuery = q.trim();
+  const grid = document.getElementById('clientsGrid');
+  const resultsEl = document.getElementById('searchResults');
+  if (!grid || !resultsEl) return;
+
+  if (!searchQuery) {
+    resultsEl.style.display='none'; resultsEl.innerHTML='';
+    grid.style.display=''; return;
+  }
+
+  grid.style.display='none';
+  resultsEl.style.display=''; resultsEl.innerHTML='';
+
+  const ql = searchQuery.toLowerCase();
+  const matches = buildIndex().filter(item =>
+    item.name.toLowerCase().includes(ql) || (item.url && item.url.toLowerCase().includes(ql))
+  );
+
+  if (!matches.length) {
+    resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🔍</div>No results for "<strong>${esc(searchQuery)}</strong>"</div>`;
+    return;
+  }
+
+  function pathHtml(item) {
+    let p = `<span class="sr-path-seg" style="color:${item.clientColor}">${esc(item.clientName)}</span>`;
+    if (item.folderName) p += `<span class="sr-path-sep">›</span><span class="sr-path-seg">📁 ${esc(item.folderName)}</span>`;
+    return p;
+  }
+
+  function renderGroup(label, items, renderFn) {
+    if (!items.length) return;
+    const lbl = document.createElement('div');
+    lbl.className = 'sr-section-label'; lbl.textContent = label;
+    resultsEl.appendChild(lbl);
+    items.forEach(renderFn);
+  }
+
+  renderGroup('Clients', matches.filter(m=>m.type==='client'), item => {
+    const el = document.createElement('div');
+    el.className = 'sr-item';
+    el.style.setProperty('--sr-color', item.clientColor);
+    el.innerHTML = `
+      <div style="width:32px;height:32px;border-radius:7px;background:${item.clientColor};color:#fff;font-family:'Lora',serif;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">${item.name[0].toUpperCase()}</div>
+      <div class="sr-body"><div class="sr-name">${highlight(item.name, searchQuery)}</div></div>
+      <span class="sr-arrow">→</span>`;
+    el.onclick = () => { nav=[item.clientId]; clearSearch(); renderHome(); };
+    resultsEl.appendChild(el);
+  });
+
+  renderGroup('Folders', matches.filter(m=>m.type==='folder'), item => {
+    const el = document.createElement('div');
+    el.className = 'sr-item';
+    el.style.setProperty('--sr-color', item.clientColor);
+    el.innerHTML = `
+      <span style="font-size:22px;flex-shrink:0">📁</span>
+      <div class="sr-body">
+        <div class="sr-name">${highlight(item.name, searchQuery)}</div>
+        <div class="sr-path">${pathHtml(item)}</div>
+      </div>
+      <span class="sr-arrow">→</span>`;
+    el.onclick = () => { nav=[item.clientId, item.folderId]; clearSearch(); renderDetail(); };
+    resultsEl.appendChild(el);
+  });
+
+  renderGroup('Links', matches.filter(m=>m.type==='link'), item => {
+    const el = document.createElement('div');
+    el.className = 'sr-item';
+    el.style.setProperty('--sr-color', item.clientColor);
+    el.innerHTML = `
+      <img class="sr-favicon" src="${faviconUrl(item.url)}" data-url="${esc(item.url)}" alt="" loading="lazy" onload="onFaviconLoad(this)" onerror="faviconFallback(this,this.dataset.url)">
+      <div class="sr-body">
+        <div class="sr-name">${highlight(item.name, searchQuery)}</div>
+        <div class="sr-path">${pathHtml(item)}</div>
+        <div class="sr-url">${highlight(item.url, searchQuery)}</div>
+      </div>
+      <span class="sr-arrow">↗</span>`;
+    el.onclick = () => window.open(item.url, '_blank', 'noopener');
+    resultsEl.appendChild(el);
+  });
+}
+
+// Clear search state whenever we navigate
+const _navAway = () => { if (nav.length) clearSearch(); };
 
 render();
 </script>
