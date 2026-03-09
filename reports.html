@@ -311,6 +311,9 @@ body.dark .topbar { background:rgba(24,22,15,.85); }
 .rte-editor ul { padding-left:20px; list-style:disc; }
 .rte-editor ol { padding-left:20px; list-style:decimal; }
 .rte-editor ul li, .rte-editor ol li { margin-bottom:3px; }
+.rte-editor ul ul, .rte-editor ol ol, .rte-editor ul ol, .rte-editor ol ul { padding-left:20px; margin-top:3px; }
+.rte-editor ul ul { list-style:circle; }
+.rte-editor ul ul ul { list-style:square; }
 .rte-editor blockquote { border-left:3px solid var(--c,var(--accent)); padding-left:12px; color:var(--muted); font-style:italic; margin:6px 0; }
 
 .card-footer {
@@ -657,6 +660,18 @@ function renderPage(){
     ed.addEventListener('input',function(){updateWordCount(s.field);markUnsaved();});
     ed.addEventListener('keyup',function(){updateToolbarState(s.field);});
     ed.addEventListener('mouseup',function(){updateToolbarState(s.field);});
+    ed.addEventListener('keydown',function(e){
+      if(e.key==='Tab'){
+        e.preventDefault();
+        if(e.shiftKey){
+          document.execCommand('outdent',false,null);
+        } else {
+          document.execCommand('indent',false,null);
+        }
+        updateToolbarState(s.field);
+        markUnsaved();
+      }
+    });
   });
   document.querySelectorAll('.metric-chip input').forEach(function(inp){inp.addEventListener('input',markUnsaved);});
 }
