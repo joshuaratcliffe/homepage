@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Client Hub</title>
+<title>Home</title>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -277,7 +277,7 @@
 <body>
 
 <header>
-  <div class="logo"><span class="logo-dot"></span>Client Hub</div>
+  <div class="logo"><span class="logo-dot"></span>home.</div>
   <div class="header-right">
     <a href="reports.html" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-size:13px;font-weight:500;text-decoration:none;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';this.style.background='var(--accent-light)'" onmouseout="this.style.borderColor='';this.style.color='';this.style.background=''">📊 Reports</a>
     <div id="editPill" class="edit-pill" style="display:none"><span class="blink"></span> Editing</div>
@@ -291,7 +291,7 @@
   <div id="homeView" class="fade-up">
     <div class="page-header">
       <div class="page-header-left">
-        <div class="page-title">Your <em>Clients</em></div>
+        <div class="page-title">Your <em>Links</em></div>
         <div class="page-sub" id="clientSub">—</div>
       </div>
       <div class="page-header-actions">
@@ -848,7 +848,7 @@ function importData(e) {
       if (!parsed.clients || !Array.isArray(parsed.clients)) throw new Error();
       if (!confirm(`Replace current data with ${parsed.clients.length} client(s) from file?`)) return;
       db = parsed; save(); nav=[]; render(); toast('Imported successfully!');
-    } catch { alert('Could not read file — make sure it is a valid Client Hub export.'); }
+    } catch { alert('Could not read file — make sure it is a valid Home export.'); }
   };
   reader.readAsText(file); e.target.value='';
 }
