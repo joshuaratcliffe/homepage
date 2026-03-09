@@ -229,6 +229,85 @@ body.dark .topbar { background:rgba(24,22,15,.85); }
 }
 .pdf-btn:hover { background:var(--danger); border-color:var(--danger); color:#fff; }
 
+/* ── SUPPORTING DOCS DROPDOWN ── */
+.docs-wrap { position:relative; }
+.docs-btn {
+  display:flex; align-items:center; gap:6px;
+  padding:7px 14px; background:var(--surface2);
+  border:1px solid var(--border2); border-radius:8px;
+  color:var(--text2); font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:12.5px; font-weight:500; cursor:pointer; transition:all .15s; white-space:nowrap;
+}
+.docs-btn:hover, .docs-btn.open { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+.docs-btn svg { transition:transform .2s; }
+.docs-btn.open svg { transform:rotate(180deg); }
+
+.docs-dropdown {
+  position:absolute; top:calc(100% + 6px); right:0;
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:12px; box-shadow:0 8px 32px var(--shadow-lg);
+  min-width:260px; z-index:50; overflow:hidden;
+  opacity:0; pointer-events:none;
+  transform:translateY(-6px);
+  transition:opacity .18s, transform .18s;
+}
+.docs-dropdown.open { opacity:1; pointer-events:all; transform:translateY(0); }
+
+.docs-dd-header {
+  padding:10px 14px 8px;
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--muted);
+  border-bottom:1px solid var(--border);
+}
+
+.docs-dd-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px; cursor:pointer;
+  transition:background .15s; border-bottom:1px solid var(--border);
+}
+.docs-dd-item:last-child { border-bottom:none; }
+.docs-dd-item:hover { background:var(--surface2); }
+
+.docs-dd-icon { font-size:16px; flex-shrink:0; width:22px; text-align:center; }
+.docs-dd-info { flex:1; min-width:0; }
+.docs-dd-label { font-size:13px; font-weight:600; color:var(--text); }
+.docs-dd-url {
+  font-size:11px; color:var(--muted); margin-top:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px;
+}
+.docs-dd-actions { display:flex; gap:4px; flex-shrink:0; }
+.docs-dd-action {
+  padding:4px 8px; border-radius:6px; border:1px solid var(--border);
+  background:var(--surface2); color:var(--muted);
+  font-size:11px; font-weight:600; cursor:pointer; transition:all .15s;
+  text-decoration:none; white-space:nowrap;
+}
+.docs-dd-action:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+.docs-dd-action.danger:hover { border-color:var(--danger); color:var(--danger); background:#fff0ee; }
+
+/* inline edit row */
+.docs-dd-edit {
+  display:none; padding:10px 14px 12px;
+  background:var(--surface2); border-top:1px solid var(--border);
+  flex-direction:column; gap:8px;
+}
+.docs-dd-edit.open { display:flex; }
+.docs-dd-edit-label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+.docs-dd-edit-row { display:flex; gap:7px; align-items:center; }
+.docs-dd-edit-input {
+  flex:1; background:var(--surface); border:1px solid var(--border2);
+  border-radius:8px; padding:8px 11px; color:var(--text);
+  font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; outline:none;
+  transition:border-color .15s;
+}
+.docs-dd-edit-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(201,100,66,.1); }
+.docs-dd-edit-save {
+  padding:8px 13px; background:var(--accent); color:#fff; border:none;
+  border-radius:8px; font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:12.5px; font-weight:600; cursor:pointer; transition:all .15s; white-space:nowrap;
+}
+.docs-dd-edit-save:hover { background:#b85838; }
+
 .content { flex:1; overflow-y:auto; padding:24px 26px; }
 .content::-webkit-scrollbar { width:5px; }
 .content::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
@@ -248,14 +327,32 @@ body.dark .topbar { background:rgba(24,22,15,.85); }
   box-shadow:0 1px 3px var(--shadow); transition:border-color .2s;
 }
 .section-card:hover { border-color:var(--border2); box-shadow:0 4px 16px var(--shadow-lg); }
+.section-card.collapsed .card-collapsible { display:none; }
+.section-card.collapsed { box-shadow:0 1px 3px var(--shadow); }
+
 .card-header {
   padding:11px 15px 9px; display:flex; align-items:center;
   justify-content:space-between; border-bottom:1px solid var(--border); gap:10px;
 }
+.section-card.collapsed .card-header { border-bottom:none; }
+
 .card-title-row { display:flex; align-items:center; gap:9px; }
 .card-icon { width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
 .card-title { font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
 .card-badge { font-size:10px; padding:2px 8px; border-radius:20px; opacity:.8; font-weight:600; }
+
+.card-header-right { display:flex; align-items:center; gap:6px; }
+.collapse-btn {
+  width:24px; height:24px; border-radius:6px; border:none;
+  background:transparent; color:var(--muted); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; transition:all .15s; flex-shrink:0;
+}
+.collapse-btn:hover { background:var(--border); color:var(--text); }
+.collapse-btn svg { transition:transform .2s; }
+.section-card.collapsed .collapse-btn svg { transform:rotate(-90deg); }
+
+/* docs link row — removed */
 
 /* section colour accents — warm palette */
 .s-support    { --c:#c96442; }
@@ -470,6 +567,60 @@ body.dark .topbar { background:rgba(24,22,15,.85); }
         <div class="date-input-wrap" id="dateInputs"></div>
       </div>
       <button class="pdf-btn" id="pdfBtn" style="display:none" onclick="exportPDF()">📄 Export PDF</button>
+      <div class="docs-wrap" id="docsWrap" style="display:none">
+        <button class="docs-btn" id="docsBtn" onclick="toggleDocsDropdown()">
+          📎 Supporting Documents
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="docs-dropdown" id="docsDropdown">
+          <div class="docs-dd-header">Supporting Documents</div>
+          <div class="docs-dd-item" id="dditem_pptx">
+            <div class="docs-dd-icon">📊</div>
+            <div class="docs-dd-info">
+              <div class="docs-dd-label">PowerPoint Presentation</div>
+              <div class="docs-dd-url" id="ddurl_pptx">No link added</div>
+            </div>
+            <div class="docs-dd-actions" id="ddactions_pptx"></div>
+          </div>
+          <div class="docs-dd-edit" id="ddedit_pptx">
+            <div class="docs-dd-edit-label" id="ddeditlabel_pptx">Add link</div>
+            <div class="docs-dd-edit-row">
+              <input class="docs-dd-edit-input" id="ddinput_pptx" type="url" placeholder="https://…">
+              <button class="docs-dd-edit-save" onclick="saveDocLink('pptx')">Save</button>
+            </div>
+          </div>
+          <div class="docs-dd-item" id="dditem_pdf">
+            <div class="docs-dd-icon">📄</div>
+            <div class="docs-dd-info">
+              <div class="docs-dd-label">PDF Presentation</div>
+              <div class="docs-dd-url" id="ddurl_pdf">No link added</div>
+            </div>
+            <div class="docs-dd-actions" id="ddactions_pdf"></div>
+          </div>
+          <div class="docs-dd-edit" id="ddedit_pdf">
+            <div class="docs-dd-edit-label" id="ddeditlabel_pdf">Add link</div>
+            <div class="docs-dd-edit-row">
+              <input class="docs-dd-edit-input" id="ddinput_pdf" type="url" placeholder="https://…">
+              <button class="docs-dd-edit-save" onclick="saveDocLink('pdf')">Save</button>
+            </div>
+          </div>
+          <div class="docs-dd-item" id="dditem_gauge">
+            <div class="docs-dd-icon">📈</div>
+            <div class="docs-dd-info">
+              <div class="docs-dd-label">BrightGauge Report</div>
+              <div class="docs-dd-url" id="ddurl_gauge">No link added</div>
+            </div>
+            <div class="docs-dd-actions" id="ddactions_gauge"></div>
+          </div>
+          <div class="docs-dd-edit" id="ddedit_gauge">
+            <div class="docs-dd-edit-label" id="ddeditlabel_gauge">Add link</div>
+            <div class="docs-dd-edit-row">
+              <input class="docs-dd-edit-input" id="ddinput_gauge" type="url" placeholder="https://…">
+              <button class="docs-dd-edit-save" onclick="saveDocLink('gauge')">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div id="pdf-header">
@@ -650,6 +801,7 @@ function renderPage(){
   document.getElementById('dateSection').style.display='flex';
   document.getElementById('saveBar').style.display='flex';
   document.getElementById('pdfBtn').style.display='flex';
+  document.getElementById('docsWrap').style.display='block';
   var el=document.getElementById('saveStatus');if(el){el.className='save-status';el.textContent='All changes saved';}
   dateMode=page.dateMode||'month';
   renderDateInputs(page);
@@ -679,6 +831,7 @@ function renderPage(){
 function buildCard(s,page){
   var html=page[s.field+'_html']||'';
   var words=page[s.field]?page[s.field].trim().split(/\s+/).length:0;
+  var collapsed=page[s.field+'_collapsed']?'collapsed':'';
   var extra='';
   if(s.type==='support'){
     var m=page.supportMetrics||{};
@@ -688,21 +841,130 @@ function buildCard(s,page){
       +'<div class="metric-chip"><label>Avg Response</label><input type="text" id="m_response" placeholder="—" value="'+(m.response||'')+'"></div>'
       +'</div>';
   }
-  return'<div class="section-card '+s.cls+'">'
-    +'<div class="card-header"><div class="card-title-row"><div class="card-icon">'+s.icon+'</div>'
+  var chevron='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+  return'<div class="section-card '+s.cls+' '+collapsed+'" id="card_'+s.field+'">'
+    +'<div class="card-header">'
+    +'<div class="card-title-row"><div class="card-icon">'+s.icon+'</div>'
     +'<span class="card-title">'+s.title+'</span></div>'
-    +'<span class="card-badge" id="badge_'+s.field+'">'+words+' words</span></div>'
+    +'<div class="card-header-right">'
+    +'<span class="card-badge" id="badge_'+s.field+'">'+words+' words</span>'
+    +'<button class="collapse-btn" onclick="toggleSection(\''+s.field+'\')" title="Minimise section">'+chevron+'</button>'
+    +'</div></div>'
+    +'<div class="card-collapsible">'
     +toolbarHTML(s.field)
     +'<div class="card-body">'+extra
     +'<div class="rte-editor" id="ed_'+s.field+'" contenteditable="true"'
     +' data-placeholder="Add your '+s.title.toLowerCase()+' notes here…">'+html+'</div>'
     +'</div>'
     +'<div class="card-footer"><span class="word-count" id="wc_'+s.field+'">'+words+' words</span></div>'
+    +'</div>'
     +'</div>';
 }
 
+function escAttr(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+function toggleSection(field){
+  var card=document.getElementById('card_'+field);
+  if(!card)return;
+  var isCollapsed=card.classList.toggle('collapsed');
+  if(currentClientId&&currentPage){
+    data[currentClientId].pages[currentPage][field+'_collapsed']=isCollapsed;
+    saveData();
+  }
+}
+
+/* ── SUPPORTING DOCS DROPDOWN ── */
+var DOC_TYPES = [
+  {key:'pptx', label:'PowerPoint Presentation', icon:'📊'},
+  {key:'pdf',  label:'PDF Presentation',         icon:'📄'},
+  {key:'gauge',label:'BrightGauge Report',        icon:'📈'}
+];
+
+function toggleDocsDropdown(){
+  var btn=document.getElementById('docsBtn');
+  var dd=document.getElementById('docsDropdown');
+  var isOpen=dd.classList.toggle('open');
+  btn.classList.toggle('open',isOpen);
+  if(isOpen) renderDocsDropdown();
+}
+
+function renderDocsDropdown(){
+  if(!currentClientId||!currentPage)return;
+  var page=data[currentClientId].pages[currentPage];
+  var docs=page.supportingDocs||{};
+  DOC_TYPES.forEach(function(dt){
+    var url=docs[dt.key]||'';
+    var urlEl=document.getElementById('ddurl_'+dt.key);
+    var actEl=document.getElementById('ddactions_'+dt.key);
+    if(urlEl) urlEl.textContent=url||'No link added';
+    if(actEl){
+      if(url){
+        actEl.innerHTML='<a class="docs-dd-action" href="'+escAttr(url)+'" target="_blank" rel="noopener">Open ↗</a>'
+          +'<button class="docs-dd-action" onclick="openDocEdit(\''+dt.key+'\')">Edit</button>'
+          +'<button class="docs-dd-action danger" onclick="removeDocLink(\''+dt.key+'\')">Remove</button>';
+      } else {
+        actEl.innerHTML='<button class="docs-dd-action" onclick="openDocEdit(\''+dt.key+'\')">+ Add link</button>';
+      }
+    }
+    // Close any open edit panels
+    var editEl=document.getElementById('ddedit_'+dt.key);
+    if(editEl) editEl.classList.remove('open');
+  });
+}
+
+function openDocEdit(key){
+  // Close all others first
+  DOC_TYPES.forEach(function(dt){
+    if(dt.key!==key){
+      var e=document.getElementById('ddedit_'+dt.key);
+      if(e) e.classList.remove('open');
+    }
+  });
+  var page=data[currentClientId].pages[currentPage];
+  var docs=page.supportingDocs||{};
+  var url=docs[key]||'';
+  var inp=document.getElementById('ddinput_'+key);
+  var lbl=document.getElementById('ddeditlabel_'+key);
+  var editEl=document.getElementById('ddedit_'+key);
+  if(inp) inp.value=url;
+  if(lbl) lbl.textContent=url?'Edit link':'Add link';
+  if(editEl){ editEl.classList.add('open'); setTimeout(function(){if(inp)inp.focus();},50); }
+}
+
+function saveDocLink(key){
+  if(!currentClientId||!currentPage)return;
+  var inp=document.getElementById('ddinput_'+key);
+  if(!inp)return;
+  var val=inp.value.trim();
+  if(val&&!/^https?:\/\//i.test(val)) val='https://'+val;
+  var page=data[currentClientId].pages[currentPage];
+  if(!page.supportingDocs) page.supportingDocs={};
+  page.supportingDocs[key]=val;
+  saveData();
+  renderDocsDropdown();
+  showToast('Link saved','success');
+}
+
+function removeDocLink(key){
+  if(!currentClientId||!currentPage)return;
+  var page=data[currentClientId].pages[currentPage];
+  if(page.supportingDocs) delete page.supportingDocs[key];
+  saveData();
+  renderDocsDropdown();
+  showToast('Link removed','success');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click',function(e){
+  var wrap=document.getElementById('docsWrap');
+  if(wrap&&!wrap.contains(e.target)){
+    document.getElementById('docsDropdown').classList.remove('open');
+    document.getElementById('docsBtn').classList.remove('open');
+  }
+});
+
 function updateWordCount(field){var ed=document.getElementById('ed_'+field);if(!ed)return;var words=(ed.innerText||'').trim()?(ed.innerText||'').trim().split(/\s+/).length:0;var wc=document.getElementById('wc_'+field),badge=document.getElementById('badge_'+field);if(wc)wc.textContent=words+' words';if(badge)badge.textContent=words+' words';}
-function renderEmptyState(){document.getElementById('mainContent').innerHTML='<div class="empty-state"><div class="es-icon">📊</div><h2>No page selected</h2><p>Select a client from the sidebar or add a new one to get started.</p></div>';document.getElementById('dateSection').style.display='none';document.getElementById('saveBar').style.display='none';document.getElementById('pdfBtn').style.display='none';document.getElementById('pageTitle').innerHTML='Select a <span>client &amp; quarter</span>';}
+function renderEmptyState(){document.getElementById('mainContent').innerHTML='<div class="empty-state"><div class="es-icon">📊</div><h2>No page selected</h2><p>Select a client from the sidebar or add a new one to get started.</p></div>';document.getElementById('dateSection').style.display='none';document.getElementById('saveBar').style.display='none';document.getElementById('pdfBtn').style.display='none';document.getElementById('docsWrap').style.display='none';document.getElementById('pageTitle').innerHTML='Select a <span>client &amp; quarter</span>';}
 
 /* ── DATE ── */
 function setDateMode(mode){dateMode=mode;var page=data[currentClientId]&&data[currentClientId].pages[currentPage];if(page){page.dateMode=mode;renderDateInputs(page);saveData();}}
