@@ -868,7 +868,15 @@ function renderPage(){
   var content=document.getElementById('mainContent');
   // Wipe completely first so no stale event listeners survive a re-render
   content.innerHTML='';
-  content.innerHTML='<div class="report-grid">'+SECTIONS.map(function(s){return buildCard(s,page);}).join('')+'</div>';
+  // Embed the exact clientId+pageKey into the grid element itself
+  // commitSave reads these back — so it ALWAYS saves to the right place
+  // regardless of what currentClientId/currentPage contain at fire time
+  var grid=document.createElement('div');
+  grid.className='report-grid';
+  grid.dataset.clientId=currentClientId;
+  grid.dataset.pageKey=currentPage;
+  grid.innerHTML=SECTIONS.map(function(s){return buildCard(s,page);}).join('');
+  content.appendChild(grid);
   SECTIONS.forEach(function(s){
     var ed=document.getElementById('ed_'+s.field);if(!ed)return;
     ed.addEventListener('input',function(){updateWordCount(s.field);markUnsaved();});
@@ -1081,17 +1089,19 @@ function cancelAllSaveTimers(){
 function showSaved(){var el=document.getElementById('saveStatus');if(el){el.className='save-status saved';el.textContent='✓ Auto-saved';}setTimeout(function(){var el2=document.getElementById('saveStatus');if(el2&&el2.textContent==='✓ Auto-saved'){el2.className='save-status';el2.textContent='All changes saved';}},2500);}
 function saveCurrent(){cancelAllSaveTimers();commitSave();var el=document.getElementById('saveStatus');if(el){el.className='save-status saved';el.textContent='✓ Saved';}setTimeout(function(){var el2=document.getElementById('saveStatus');if(el2&&el2.textContent==='✓ Saved'){el2.className='save-status';el2.textContent='All changes saved';}},2500);}
 function commitSave(){
-  if(!currentClientId||!currentPage) return;
-  if(!data[currentClientId]) { console.warn('commitSave: client gone',currentClientId); return; }
-  if(!data[currentClientId].pages[currentPage]) { console.warn('commitSave: page gone',currentPage); return; }
-  // Snapshot the target so nothing can shift it mid-write
-  var cid=currentClientId, pk=currentPage;
+  // Read the target clientId+pageKey from the DOM itself — not from global variables.
+  // This means it ALWAYS saves to the client+page that is actually rendered,
+  // regardless of what currentClientId/currentPage happen to be at fire time.
+  var grid=document.querySelector('.report-grid[data-clientid]');
+  if(!grid) return;
+  var cid=grid.dataset.clientid;
+  var pk=grid.dataset.pagekey;
+  if(!cid||!pk) return;
+  if(!data[cid]||!data[cid].pages[pk]){ console.warn('commitSave: target gone',cid,pk); return; }
   var page=data[cid].pages[pk];
   SECTIONS.forEach(function(s){var ed=document.getElementById('ed_'+s.field);if(ed){page[s.field+'_html']=ed.innerHTML;page[s.field]=ed.innerText||'';}});
   var m={};['tickets','resolved','response'].forEach(function(k){var el=document.getElementById('m_'+k);if(el)m[k]=el.value;});
   page.supportMetrics=m;
-  // Final guard — re-verify nothing changed during the loop
-  if(currentClientId!==cid||currentPage!==pk){ console.warn('commitSave: client/page shifted during save, discarding'); return; }
   saveData();
 }
 function saveData(){localStorage.setItem('qr_data',JSON.stringify(data));}
