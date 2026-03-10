@@ -130,6 +130,8 @@ body.dark::before {
 .page-item .pi-del { opacity:0; font-size:11px; color:var(--danger); cursor:pointer; padding:2px 4px; border-radius:4px; }
 .page-item:hover .pi-del { opacity:.6; }
 .page-item .pi-del:hover { opacity:1; background:rgba(192,57,43,.1); }
+.page-item-label { display:flex; flex-direction:column; gap:1px; min-width:0; }
+.page-item-date { font-size:10.5px; color:var(--muted); font-weight:400; opacity:.75; }
 .add-quarter-btn {
   display:flex; align-items:center; gap:6px;
   padding:6px 10px; border-radius:8px; cursor:pointer;
@@ -775,8 +777,11 @@ function renderSidebar(){
     var initials=client.name.split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
     var pageKeys=Object.keys(client.pages||{});
     var pagesHTML=pageKeys.map(function(pk){
+      var page=client.pages[pk];
+      var dateStr=formatDate(page);
+      var dateHtml=dateStr?'<span class="page-item-date">'+dateStr+'</span>':'';
       return'<div class="page-item'+(cid===currentClientId&&pk===currentPage?' active':'')+'" onclick="selectPage(\''+cid+'\',\''+pk+'\');event.stopPropagation()">'
-        +'<span>'+pk+'</span><span class="pi-del" onclick="deletePage(\''+cid+'\',\''+pk+'\',event)">✕</span></div>';
+        +'<span class="page-item-label">'+pk+dateHtml+'</span><span class="pi-del" onclick="deletePage(\''+cid+'\',\''+pk+'\',event)">✕</span></div>';
     }).join('');
     var item=document.createElement('div');
     item.className='client-item'+(cid===currentClientId?' open':'');
