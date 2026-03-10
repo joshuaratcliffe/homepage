@@ -1167,6 +1167,82 @@ function closeModal(id){document.getElementById(id).classList.remove('show');}
 document.querySelectorAll('.modal-overlay').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o)closeModal(o.id);});});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.modal-overlay.show').forEach(function(o){closeModal(o.id);});if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveCurrent();}if((e.ctrlKey||e.metaKey)&&e.key==='p'){e.preventDefault();exportPDF();}});
 
+/* ── RECOVERY MODAL ── */
+function openRecovery(){
+  recRenderClientList();
+  recPopulateSelects();
+  document.getElementById('recMoveStatus').innerHTML='';
+  openModal('recoveryModal');
+}
+function recRenderClientList(){
+  var el=document.getElementById('recoveryClientList');
+  var clients=Object.keys(data);
+  if(!clients.length){el.innerHTML='<span style="color:var(--muted);font-style:italic">No data found.</span>';return;}
+  var seenPages={};
+  var html='<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>'
+    +'<th style="text-align:left;padding:7px 10px;background:var(--bg);color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--border);">Client</th>'
+    +'<th style="text-align:left;padding:7px 10px;background:var(--bg);color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--border);">Pages</th>'
+    +'<th style="text-align:left;padding:7px 10px;background:var(--bg);color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--border);">Status</th>'
+    +'</tr></thead><tbody>';
+  clients.forEach(function(cid){
+    var c=data[cid];
+    var pages=Object.keys(c.pages||{});
+    pages.forEach(function(pk){ seenPages[pk.toLowerCase()]=(seenPages[pk.toLowerCase()]||0)+1; });
+    var hasDupe=pages.some(function(pk){ return seenPages[pk.toLowerCase()]>1; });
+    var pageTags=pages.map(function(pk){
+      var hasContent=SECTIONS.some(function(s){return (c.pages[pk][s.field]||'').trim().length>0;});
+      return'<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:6px;border:1px solid '+(hasContent?'#5c7a6b':'var(--border)')+';color:'+(hasContent?'#2a5a45':'var(--muted)')+';">'+pk+(hasContent?' \u2713':'')+'</span>';
+    }).join('');
+    html+='<tr>'
+      +'<td style="padding:9px 10px;border-bottom:1px solid var(--border);"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:'+(c.color||'#999')+';margin-right:6px;vertical-align:middle;"></span><strong>'+c.name+'</strong></td>'
+      +'<td style="padding:9px 10px;border-bottom:1px solid var(--border);">'+(pageTags||'<span style="color:var(--muted);font-style:italic">No pages</span>')+'</td>'
+      +'<td style="padding:9px 10px;border-bottom:1px solid var(--border);">'+(hasDupe?'<span style="background:#fff7e6;border:1px solid #f6d68a;color:#7a5c1a;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">\u26a0 Duplicate</span>':'<span style="background:#e6f0ec;border:1px solid #a8cfc0;color:#2a5a45;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">\u2713 OK</span>')+'</td>'
+      +'</tr>';
+  });
+  html+='</tbody></table>';
+  var dupes=Object.keys(seenPages).filter(function(k){return seenPages[k]>1;});
+  if(dupes.length) html='<div style="padding:10px 14px;background:#fff7e6;border:1px solid #f6d68a;color:#7a5c1a;border-radius:8px;font-size:13px;margin-bottom:12px;">\u26a0 Duplicate page key across clients: <strong>'+dupes.join(', ')+'</strong></div>'+html;
+  el.innerHTML=html;
+}
+function recPopulateSelects(){
+  var clients=Object.keys(data);
+  var opts=clients.map(function(cid){return'<option value="'+cid+'">'+data[cid].name+'</option>';}).join('');
+  document.getElementById('recFromClient').innerHTML=opts;
+  document.getElementById('recToClient').innerHTML=opts;
+  if(clients.length>1) document.getElementById('recToClient').selectedIndex=1;
+  recPopulatePages();
+}
+function recPopulatePages(){
+  var cid=document.getElementById('recFromClient').value;
+  var sel=document.getElementById('recFromPage');
+  var pages=cid&&data[cid]?Object.keys(data[cid].pages||{}):[];
+  sel.innerHTML=pages.length?pages.map(function(pk){return'<option value="'+pk+'">'+pk+'</option>';}).join(''):'<option value="">No pages</option>';
+}
+function recMovePage(){
+  var fromCid=document.getElementById('recFromClient').value;
+  var pk=document.getElementById('recFromPage').value;
+  var toCid=document.getElementById('recToClient').value;
+  var status=document.getElementById('recMoveStatus');
+  if(!fromCid||!pk||!toCid){status.innerHTML='<span style="color:var(--danger)">Select all fields.</span>';return;}
+  if(fromCid===toCid){status.innerHTML='<span style="color:var(--danger)">From and To are the same.</span>';return;}
+  if(!data[fromCid]||!data[fromCid].pages[pk]){status.innerHTML='<span style="color:var(--danger)">Page not found.</span>';return;}
+  if(!data[toCid].pages) data[toCid].pages={};
+  if(data[toCid].pages[pk]&&!confirm(pk+' already exists on '+data[toCid].name+'. Overwrite?'))return;
+  data[toCid].pages[pk]=data[fromCid].pages[pk];
+  delete data[fromCid].pages[pk];
+  saveData();renderSidebar();
+  status.innerHTML='<span style="color:var(--success)">\u2713 Moved <strong>'+pk+'</strong> to <strong>'+data[toCid].name+'</strong>.</span>';
+  recRenderClientList();recPopulateSelects();
+}
+function recDownload(){
+  var blob=new Blob([JSON.stringify({version:'recovery',exportedAt:new Date().toISOString(),data:data},null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='qr-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  showToast('\u2713 Backup downloaded','success');
+}
+
+
 /* ── DARK MODE (synced with Client Hub) ── */
 var darkMode = localStorage.getItem('chub-dark') === '1';
 function applyDark(){document.body.classList.toggle('dark',darkMode);document.getElementById('darkIcon').textContent=darkMode?'☀️':'🌙';document.getElementById('darkLabel').textContent=darkMode?'Light':'Dark';}
