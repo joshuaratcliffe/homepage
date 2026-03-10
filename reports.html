@@ -803,6 +803,9 @@ function renderSearchResults(results,ql){
     if(r.nameMatch) tags.push('<span class="sri-tag" style="background:var(--accent-light);color:var(--accent)">client</span>');
     if(r.pkMatch)   tags.push('<span class="sri-tag" style="background:rgba(154,138,92,.15);color:var(--warning)">quarter</span>');
     if(r.dateMatch) tags.push('<span class="sri-tag" style="background:rgba(92,122,107,.15);color:var(--success)">date</span>');
+    if(r.contentMatch) r.matchedSections.forEach(function(sec){
+      tags.push('<span class="sri-tag" style="background:rgba(122,107,155,.15);color:#7a6b9b">'+sec+'</span>');
+    });
     item.innerHTML='<div class="sri-avatar" style="background:'+r.client.color+'">'+initials+'</div>'
       +'<div class="sri-info"><div class="sri-client">'+hl(r.client.name,ql)+(r.pk?' <span style="color:var(--muted);font-weight:400">/ '+hl(r.pk,ql)+'</span>':'')+'</div>'
       +(r.dateStr?'<div class="sri-date">'+r.dateStr+'</div>':'')
