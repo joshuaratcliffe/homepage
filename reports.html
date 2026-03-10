@@ -1089,13 +1089,10 @@ function cancelAllSaveTimers(){
 function showSaved(){var el=document.getElementById('saveStatus');if(el){el.className='save-status saved';el.textContent='✓ Auto-saved';}setTimeout(function(){var el2=document.getElementById('saveStatus');if(el2&&el2.textContent==='✓ Auto-saved'){el2.className='save-status';el2.textContent='All changes saved';}},2500);}
 function saveCurrent(){cancelAllSaveTimers();commitSave();var el=document.getElementById('saveStatus');if(el){el.className='save-status saved';el.textContent='✓ Saved';}setTimeout(function(){var el2=document.getElementById('saveStatus');if(el2&&el2.textContent==='✓ Saved'){el2.className='save-status';el2.textContent='All changes saved';}},2500);}
 function commitSave(){
-  // Read the target clientId+pageKey from the DOM itself — not from global variables.
-  // This means it ALWAYS saves to the client+page that is actually rendered,
-  // regardless of what currentClientId/currentPage happen to be at fire time.
-  var grid=document.querySelector('.report-grid[data-clientid]');
+  var grid=document.querySelector('.report-grid[data-client-id]');
   if(!grid) return;
-  var cid=grid.dataset.clientid;
-  var pk=grid.dataset.pagekey;
+  var cid=grid.dataset.clientId;
+  var pk=grid.dataset.pageKey;
   if(!cid||!pk) return;
   if(!data[cid]||!data[cid].pages[pk]){ console.warn('commitSave: target gone',cid,pk); return; }
   var page=data[cid].pages[pk];
