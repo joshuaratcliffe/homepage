@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Data Recovery Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Lora:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#f5f0eb; --surface:#fff; --border:#e0d9d0; --border2:#cfc8be; --text:#1a1714; --muted:#8a847c; --accent:#c96442; --accent-light:#f5e8e2; --success:#5c7a6b; --danger:#c0392b; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding:40px; }
+  h1 { font-family:'Lora',serif; font-size:26px; margin-bottom:6px; }
+  .sub { color:var(--muted); font-size:14px; margin-bottom:32px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px; margin-bottom:20px; }
+  .card h2 { font-size:15px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .badge { font-size:11px; padding:2px 8px; border-radius:20px; font-weight:600; }
+  .badge-ok { background:#e6f0ec; color:var(--success); }
+  .badge-warn { background:#fff0ee; color:var(--danger); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; padding:8px 12px; background:var(--bg); color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.05em; border-bottom:1px solid var(--border); }
+  td { padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  .client-dot { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:middle; }
+  .pages-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .page-tag { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:3px 9px; font-size:12px; }
+  .btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:8px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all .18s; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#b85838; }
+  .btn-outline { background:var(--surface); color:var(--text); border:1px solid var(--border2); }
+  .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-danger { background:#fff0ee; color:var(--danger); border:1px solid #f5c6c2; }
+  .btn-danger:hover { background:#ffe4e0; }
+  .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; }
+  pre { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:14px; font-size:11px; overflow-x:auto; max-height:300px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; }
+  .empty { color:var(--muted); font-style:italic; font-size:14px; padding:12px 0; }
+  .alert { padding:12px 16px; border-radius:9px; font-size:13.5px; margin-bottom:16px; }
+  .alert-warn { background:#fff7e6; border:1px solid #f6d68a; color:#7a5c1a; }
+  .alert-ok { background:#e6f0ec; border:1px solid #a8cfc0; color:#2a5a45; }
+  #status { margin-top:16px; }
+  .sep { height:1px; background:var(--border); margin:20px 0; }
+  select, input[type=text] { background:var(--bg); border:1px solid var(--border2); border-radius:8px; padding:8px 12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; color:var(--text); outline:none; }
+  select:focus, input:focus { border-color:var(--accent); }
+  label { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:5px; }
+  .form-row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-top:16px; }
+  .form-group { display:flex; flex-direction:column; }
+</style>
+</head>
+<body>
+
+<h1>📦 Data Recovery Tool</h1>
+<p class="sub">Inspect and repair your Quarterly Reports localStorage data.</p>
+
+<div class="card" id="rawCard">
+  <h2>Step 1 — Current Storage State</h2>
+  <div id="rawContent"></div>
+</div>
+
+<div class="card" id="clientsCard">
+  <h2>Step 2 — Clients & Pages Found</h2>
+  <div id="clientsContent"></div>
+</div>
+
+<div class="card">
+  <h2>Step 3 — Reassign Pages Between Clients</h2>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">If pages have been duplicated or assigned to the wrong client, use this to move them.</p>
+  <div class="form-row">
+    <div class="form-group"><label>From Client</label><select id="fromClient" onchange="populateFromPages()"></select></div>
+    <div class="form-group"><label>Page</label><select id="fromPage"></select></div>
+    <div class="form-group"><label>To Client</label><select id="toClient"></select></div>
+    <button class="btn btn-primary" onclick="movePage()">Move Page →</button>
+  </div>
+  <div id="moveStatus"></div>
+</div>
+
+<div class="card">
+  <h2>Step 4 — Backup & Restore</h2>
+  <div class="actions">
+    <button class="btn btn-outline" onclick="downloadBackup()">⬇ Download Full Backup</button>
+    <button class="btn btn-outline" onclick="document.getElementById('restoreFile').click()">⬆ Restore from Backup</button>
+    <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreBackup(event)">
+    <button class="btn btn-danger" onclick="clearAllData()">🗑 Clear All Data</button>
+  </div>
+</div>
+
+<div id="status"></div>
+
+<script>
+var data = {};
+var KEY = 'qr_data';
+
+function load() {
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (!raw) {
+      showRaw('<span class="empty">No data found in localStorage under key "qr_data".</span>');
+      showClients('<span class="empty">Nothing to show.</span>');
+      return;
+    }
+    data = JSON.parse(raw);
+    showRaw('<pre>' + JSON.stringify(data, null, 2) + '</pre>');
+    renderClients();
+    populateSelects();
+  } catch(e) {
+    showRaw('<div class="alert alert-warn">⚠ Could not parse data: ' + e.message + '</div>');
+  }
+}
+
+function showRaw(html) { document.getElementById('rawContent').innerHTML = html; }
+function showClients(html) { document.getElementById('clientsContent').innerHTML = html; }
+
+function renderClients() {
+  var clients = Object.keys(data);
+  if (!clients.length) { showClients('<span class="empty">No clients found.</span>'); return; }
+
+  var html = '<table><thead><tr><th>Client</th><th>ID</th><th>Quarters / Pages</th><th>Content check</th></tr></thead><tbody>';
+  var seenPageKeys = {};
+
+  clients.forEach(function(cid) {
+    var c = data[cid];
+    var pages = Object.keys(c.pages || {});
+    var hasDupe = false;
+
+    var pageTags = pages.map(function(pk) {
+      var key = pk.toLowerCase();
+      if (seenPageKeys[key]) hasDupe = true;
+      seenPageKeys[key] = (seenPageKeys[key] || 0) + 1;
+      var page = c.pages[pk];
+      var hasContent = SECTIONS.some(function(s) { return (page[s] || '').trim().length > 0; });
+      return '<span class="page-tag" style="' + (hasContent ? 'border-color:#5c7a6b;color:#2a5a45' : '') + '">'
+        + pk + (hasContent ? ' ✓' : '') + '</span>';
+    }).join('');
+
+    html += '<tr>'
+      + '<td><span class="client-dot" style="background:' + (c.color||'#999') + '"></span><strong>' + (c.name||'Unknown') + '</strong></td>'
+      + '<td style="color:var(--muted);font-size:11px">' + cid + '</td>'
+      + '<td>' + (pageTags || '<span style="color:var(--muted)">No pages</span>') + '</td>'
+      + '<td>' + (hasDupe ? '<span class="badge badge-warn">⚠ Possible duplicate</span>' : '<span class="badge badge-ok">OK</span>') + '</td>'
+      + '</tr>';
+  });
+
+  // Check for cross-client dupes
+  var dupeKeys = Object.keys(seenPageKeys).filter(function(k) { return seenPageKeys[k] > 1; });
+  if (dupeKeys.length) {
+    html = '<div class="alert alert-warn">⚠ These page keys appear under multiple clients: <strong>' + dupeKeys.join(', ') + '</strong>. Use Step 3 to move them.</div>' + html;
+  } else {
+    html = '<div class="alert alert-ok">✓ No obvious duplicates detected across clients.</div>' + html;
+  }
+
+  html += '</tbody></table>';
+  showClients(html);
+}
+
+var SECTIONS = ['support','strategy','security','projects','achievements','extra','lessons'];
+
+function populateSelects() {
+  var clients = Object.keys(data);
+  ['fromClient','toClient'].forEach(function(id) {
+    var sel = document.getElementById(id);
+    sel.innerHTML = clients.map(function(cid) {
+      return '<option value="' + cid + '">' + (data[cid].name||cid) + '</option>';
+    }).join('');
+  });
+  if (clients.length > 1) document.getElementById('toClient').selectedIndex = 1;
+  populateFromPages();
+}
+
+function populateFromPages() {
+  var cid = document.getElementById('fromClient').value;
+  var sel = document.getElementById('fromPage');
+  var pages = cid && data[cid] ? Object.keys(data[cid].pages || {}) : [];
+  sel.innerHTML = pages.length
+    ? pages.map(function(pk) { return '<option value="' + pk + '">' + pk + '</option>'; }).join('')
+    : '<option value="">No pages</option>';
+}
+
+function movePage() {
+  var fromCid = document.getElementById('fromClient').value;
+  var pk = document.getElementById('fromPage').value;
+  var toCid = document.getElementById('toClient').value;
+  var status = document.getElementById('moveStatus');
+
+  if (!fromCid || !pk || !toCid) { status.innerHTML = '<div class="alert alert-warn" style="margin-top:12px">Please select all fields.</div>'; return; }
+  if (fromCid === toCid) { status.innerHTML = '<div class="alert alert-warn" style="margin-top:12px">From and To clients are the same.</div>'; return; }
+  if (!data[fromCid] || !data[fromCid].pages[pk]) { status.innerHTML = '<div class="alert alert-warn" style="margin-top:12px">Page not found.</div>'; return; }
+  if (!data[toCid].pages) data[toCid].pages = {};
+  if (data[toCid].pages[pk] && !confirm(pk + ' already exists on ' + data[toCid].name + '. Overwrite?')) return;
+
+  data[toCid].pages[pk] = data[fromCid].pages[pk];
+  delete data[fromCid].pages[pk];
+  localStorage.setItem(KEY, JSON.stringify(data));
+
+  status.innerHTML = '<div class="alert alert-ok" style="margin-top:12px">✓ Moved <strong>' + pk + '</strong> from <strong>' + data[fromCid].name + '</strong> to <strong>' + data[toCid].name + '</strong>.</div>';
+  renderClients();
+  populateSelects();
+}
+
+function downloadBackup() {
+  var blob = new Blob([JSON.stringify({version:'recovery',exportedAt:new Date().toISOString(),data:data},null,2)],{type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'qr-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  setStatus('✓ Backup downloaded.', true);
+}
+
+function restoreBackup(event) {
+  var file = event.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var parsed = JSON.parse(e.target.result);
+      var imported = parsed.data || parsed;
+      if (!confirm('Replace all current data with this backup?')) return;
+      localStorage.setItem(KEY, JSON.stringify(imported));
+      data = imported;
+      showRaw('<pre>' + JSON.stringify(data, null, 2) + '</pre>');
+      renderClients();
+      populateSelects();
+      setStatus('✓ Backup restored successfully.', true);
+    } catch(err) { setStatus('✗ Could not read backup file: ' + err.message, false); }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function clearAllData() {
+  if (!confirm('This will permanently delete ALL quarterly report data. Are you sure?')) return;
+  if (!confirm('Really sure? This cannot be undone.')) return;
+  localStorage.removeItem(KEY);
+  data = {};
+  load();
+  setStatus('All data cleared.', false);
+}
+
+function setStatus(msg, ok) {
+  document.getElementById('status').innerHTML = '<div class="alert ' + (ok ? 'alert-ok' : 'alert-warn') + '">' + msg + '</div>';
+  setTimeout(function() { document.getElementById('status').innerHTML = ''; }, 4000);
+}
+
+load();
+</script>
+</body>
+</html>
