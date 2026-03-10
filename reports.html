@@ -546,6 +546,7 @@ body.dark .topbar { background:rgba(24,22,15,.85); }
     <div class="footer-actions">
       <button class="footer-btn" onclick="exportData()" title="Export all reports">↑ Export</button>
       <button class="footer-btn" onclick="document.getElementById('importFile').click()" title="Import reports">↓ Import</button>
+      <button class="footer-btn" onclick="openRecovery()" title="Data recovery tool" style="color:var(--danger)">🔧</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
     </div>
     <button class="theme-toggle" onclick="toggleDark()">
@@ -663,6 +664,52 @@ body.dark .topbar { background:rgba(24,22,15,.85); }
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('addQuarterModal')">Cancel</button>
       <button class="btn-confirm" onclick="confirmAddQuarter()">Create Page</button>
+    </div>
+  </div>
+</div>
+
+<!-- Recovery Modal -->
+<div class="modal-overlay" id="recoveryModal" style="align-items:flex-start;padding:40px 20px;overflow-y:auto;">
+  <div class="modal" style="max-width:620px;width:100%;max-height:90vh;overflow-y:auto;">
+    <h3>🔧 Data Recovery</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Inspect and repair your quarterly reports data.</p>
+
+    <div style="margin-bottom:18px;">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Clients & Pages Found</div>
+      <div id="recoveryClientList" style="font-size:13px;"></div>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:18px 0;"></div>
+
+    <div style="margin-bottom:18px;">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Move a Page to a Different Client</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">From</div>
+          <select id="recFromClient" onchange="recPopulatePages()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;"></select>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Page</div>
+          <select id="recFromPage" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;"></select>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">To</div>
+          <select id="recToClient" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;"></select>
+        </div>
+        <button onclick="recMovePage()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Move →</button>
+      </div>
+      <div id="recMoveStatus" style="margin-top:8px;font-size:13px;"></div>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:18px 0;"></div>
+
+    <div style="margin-bottom:6px;">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Backup Raw Data</div>
+      <button onclick="recDownload()" style="padding:8px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--text2);">⬇ Download Backup JSON</button>
+    </div>
+
+    <div class="modal-actions" style="margin-top:24px;">
+      <button class="btn-cancel" onclick="closeModal('recoveryModal')">Close</button>
     </div>
   </div>
 </div>
@@ -794,7 +841,11 @@ function renderSidebar(){
   });
 }
 function toggleClient(cid){currentClientId=currentClientId===cid?null:cid;renderSidebar();}
-function selectPage(cid,pk){currentClientId=cid;currentPage=pk;renderSidebar();renderPage();}
+function selectPage(cid,pk){
+  // Cancel any pending autosave for the previous page before switching
+  if(autoSaveTimer){ clearTimeout(autoSaveTimer); autoSaveTimer=null; commitSave(); }
+  currentClientId=cid;currentPage=pk;renderSidebar();renderPage();
+}
 function deletePage(cid,pk,e){e.stopPropagation();if(!confirm('Delete '+pk+'?'))return;delete data[cid].pages[pk];if(currentClientId===cid&&currentPage===pk){currentPage=null;renderEmptyState();}saveData();renderSidebar();}
 
 /* ── PAGE RENDER ── */
@@ -992,12 +1043,64 @@ function updateDate(){var page=data[currentClientId]&&data[currentClientId].page
 function markUnsaved(){var el=document.getElementById('saveStatus');if(el){el.className='save-status';el.textContent='Unsaved changes';}if(autoSaveTimer)clearTimeout(autoSaveTimer);autoSaveTimer=setTimeout(function(){var el2=document.getElementById('saveStatus');if(el2){el2.className='save-status saving';el2.textContent='Saving…';}setTimeout(function(){commitSave();showSaved();},300);},1500);}
 function showSaved(){var el=document.getElementById('saveStatus');if(el){el.className='save-status saved';el.textContent='✓ Auto-saved';}setTimeout(function(){var el2=document.getElementById('saveStatus');if(el2&&el2.textContent==='✓ Auto-saved'){el2.className='save-status';el2.textContent='All changes saved';}},2500);}
 function saveCurrent(){if(autoSaveTimer){clearTimeout(autoSaveTimer);autoSaveTimer=null;}commitSave();var el=document.getElementById('saveStatus');if(el){el.className='save-status saved';el.textContent='✓ Saved';}setTimeout(function(){var el2=document.getElementById('saveStatus');if(el2&&el2.textContent==='✓ Saved'){el2.className='save-status';el2.textContent='All changes saved';}},2500);}
-function commitSave(){if(!currentClientId||!currentPage)return;var page=data[currentClientId].pages[currentPage];SECTIONS.forEach(function(s){var ed=document.getElementById('ed_'+s.field);if(ed){page[s.field+'_html']=ed.innerHTML;page[s.field]=ed.innerText||'';}});var m={};['tickets','resolved','response'].forEach(function(k){var el=document.getElementById('m_'+k);if(el)m[k]=el.value;});page.supportMetrics=m;saveData();}
+function commitSave(){
+  if(!currentClientId||!currentPage) return;
+  // Safety check — verify the client and page still exist before writing
+  if(!data[currentClientId]) { console.warn('commitSave: client no longer exists', currentClientId); return; }
+  if(!data[currentClientId].pages[currentPage]) { console.warn('commitSave: page no longer exists', currentPage); return; }
+  var page=data[currentClientId].pages[currentPage];
+  SECTIONS.forEach(function(s){var ed=document.getElementById('ed_'+s.field);if(ed){page[s.field+'_html']=ed.innerHTML;page[s.field]=ed.innerText||'';}});
+  var m={};['tickets','resolved','response'].forEach(function(k){var el=document.getElementById('m_'+k);if(el)m[k]=el.value;});
+  page.supportMetrics=m;
+  saveData();
+}
 function saveData(){localStorage.setItem('qr_data',JSON.stringify(data));}
 
 /* ── EXPORT / IMPORT ── */
 function exportData(){if(!Object.keys(data).length){showToast('No data to export yet','warning');return;}var blob=new Blob([JSON.stringify({version:'3.0',exportedAt:new Date().toISOString(),data},null,2)],{type:'application/json'});var url=URL.createObjectURL(blob),a=document.createElement('a'),d=new Date(),stamp=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');a.href=url;a.download='quarterly-reports-'+stamp+'.json';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);showToast('✓ Exported','success');}
-function importData(event){var file=event.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(e){try{var parsed=JSON.parse(e.target.result),imported=parsed.data||parsed;if(typeof imported!=='object'||Array.isArray(imported))throw new Error();var count=Object.keys(imported).length;if(!count){showToast('File contains no clients','warning');return;}if(Object.keys(data).length){if(confirm('Merge or replace?')){Object.assign(data,imported);showToast('✓ Merged '+count+' client(s)','success');}else{data=imported;currentClientId=null;currentPage=null;renderEmptyState();showToast('✓ Replaced','success');}}else{data=imported;currentClientId=null;currentPage=null;renderEmptyState();showToast('✓ Loaded '+count+' client(s)','success');}saveData();renderSidebar();}catch(err){showToast('✗ Invalid file','danger');}event.target.value='';};reader.readAsText(file);}
+function importData(event){
+  var file=event.target.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var parsed=JSON.parse(e.target.result),imported=parsed.data||parsed;
+      if(typeof imported!=='object'||Array.isArray(imported))throw new Error();
+      var count=Object.keys(imported).length;
+      if(!count){showToast('File contains no clients','warning');return;}
+      if(Object.keys(data).length){
+        var choice=confirm('How do you want to import?\n\nOK = Safe merge (never overwrites existing pages)\nCancel = Full replace (replaces everything)');
+        if(choice){
+          // Safe deep merge — add new clients/pages only, never overwrite existing
+          Object.keys(imported).forEach(function(cid){
+            if(!data[cid]){
+              // Brand new client — add entirely
+              data[cid]=imported[cid];
+            } else {
+              // Existing client — only add pages that don't already exist
+              Object.keys(imported[cid].pages||{}).forEach(function(pk){
+                if(!data[cid].pages[pk]){
+                  data[cid].pages[pk]=imported[cid].pages[pk];
+                }
+                // If page already exists, skip it — never overwrite
+              });
+            }
+          });
+          showToast('✓ Safely merged '+count+' client(s)','success');
+        } else {
+          if(!confirm('This will permanently replace ALL your current data. Are you sure?'))return;
+          data=imported;currentClientId=null;currentPage=null;renderEmptyState();
+          showToast('✓ Replaced with imported data','success');
+        }
+      } else {
+        data=imported;currentClientId=null;currentPage=null;renderEmptyState();
+        showToast('✓ Loaded '+count+' client(s)','success');
+      }
+      saveData();renderSidebar();
+    }catch(err){showToast('✗ Invalid file','danger');}
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
 
 /* ── PDF ── */
 function exportPDF(){if(!currentClientId||!currentPage)return;commitSave();var client=data[currentClientId],page=client.pages[currentPage],dateStr=formatDate(page);document.getElementById('pdf-title').textContent=client.name+' — '+currentPage+' Report';document.getElementById('pdf-meta').textContent=[currentPage,dateStr?'Meeting: '+dateStr:'','Generated: '+new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'})].filter(Boolean).join('   •   ');window.print();}
