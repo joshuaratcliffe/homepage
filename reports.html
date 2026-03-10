@@ -866,6 +866,8 @@ function renderPage(){
   dateMode=page.dateMode||'month';
   renderDateInputs(page);
   var content=document.getElementById('mainContent');
+  // Wipe completely first so no stale event listeners survive a re-render
+  content.innerHTML='';
   content.innerHTML='<div class="report-grid">'+SECTIONS.map(function(s){return buildCard(s,page);}).join('')+'</div>';
   SECTIONS.forEach(function(s){
     var ed=document.getElementById('ed_'+s.field);if(!ed)return;
@@ -1046,19 +1048,27 @@ function updateDate(){var page=data[currentClientId]&&data[currentClientId].page
 
 /* ── AUTOSAVE ── */
 var autoSaveTimer=null;
-var innerSaveTimer=null;  // track the inner timer too
+var innerSaveTimer=null;
 
 function markUnsaved(){
   var el=document.getElementById('saveStatus');
   if(el){el.className='save-status';el.textContent='Unsaved changes';}
+  // Capture EXACTLY which client+page is being edited RIGHT NOW
+  var savedForClient=currentClientId;
+  var savedForPage=currentPage;
   cancelAllSaveTimers();
   autoSaveTimer=setTimeout(function(){
+    autoSaveTimer=null;
     var el2=document.getElementById('saveStatus');
     if(el2){el2.className='save-status saving';el2.textContent='Saving…';}
     innerSaveTimer=setTimeout(function(){
       innerSaveTimer=null;
-      commitSave();
-      showSaved();
+      // Only save if the user is STILL on the same client+page that triggered the save
+      if(currentClientId===savedForClient && currentPage===savedForPage){
+        commitSave();
+        showSaved();
+      }
+      // If they've switched away, silently discard — the switch already flushed via commitSave()
     },300);
   },1500);
 }
@@ -1072,13 +1082,16 @@ function showSaved(){var el=document.getElementById('saveStatus');if(el){el.clas
 function saveCurrent(){cancelAllSaveTimers();commitSave();var el=document.getElementById('saveStatus');if(el){el.className='save-status saved';el.textContent='✓ Saved';}setTimeout(function(){var el2=document.getElementById('saveStatus');if(el2&&el2.textContent==='✓ Saved'){el2.className='save-status';el2.textContent='All changes saved';}},2500);}
 function commitSave(){
   if(!currentClientId||!currentPage) return;
-  // Safety check — verify the client and page still exist before writing
-  if(!data[currentClientId]) { console.warn('commitSave: client no longer exists', currentClientId); return; }
-  if(!data[currentClientId].pages[currentPage]) { console.warn('commitSave: page no longer exists', currentPage); return; }
-  var page=data[currentClientId].pages[currentPage];
+  if(!data[currentClientId]) { console.warn('commitSave: client gone',currentClientId); return; }
+  if(!data[currentClientId].pages[currentPage]) { console.warn('commitSave: page gone',currentPage); return; }
+  // Snapshot the target so nothing can shift it mid-write
+  var cid=currentClientId, pk=currentPage;
+  var page=data[cid].pages[pk];
   SECTIONS.forEach(function(s){var ed=document.getElementById('ed_'+s.field);if(ed){page[s.field+'_html']=ed.innerHTML;page[s.field]=ed.innerText||'';}});
   var m={};['tickets','resolved','response'].forEach(function(k){var el=document.getElementById('m_'+k);if(el)m[k]=el.value;});
   page.supportMetrics=m;
+  // Final guard — re-verify nothing changed during the loop
+  if(currentClientId!==cid||currentPage!==pk){ console.warn('commitSave: client/page shifted during save, discarding'); return; }
   saveData();
 }
 function saveData(){localStorage.setItem('qr_data',JSON.stringify(data));}
