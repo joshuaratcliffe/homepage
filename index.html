@@ -445,7 +445,7 @@ function renderHome() {
   document.getElementById('homeView').style.display = '';
   document.getElementById('detailView').style.display = 'none';
   document.getElementById('backBtn').style.display = 'none';
-  document.getElementById('sortClientsBtn').style.display = editMode ? '' : 'none';
+  document.getElementById('sortClientsBtn').style.display = '';
   document.getElementById('sortClientsBtn').textContent = sortLabel();
   // Restore grid visibility in case search was active
   const gridEl = document.getElementById('clientsGrid');
@@ -531,12 +531,12 @@ function renderDetail() {
   // Actions bar
   const acts = document.getElementById('dvActions');
   acts.innerHTML = '';
+  const sb = document.createElement('button');
+  sb.className = 'btn btn-outline btn-sm';
+  sb.textContent = sortLabel();
+  sb.onclick = () => sortCurrent();
+  acts.appendChild(sb);
   if (editMode) {
-    const sb = document.createElement('button');
-    sb.className = 'btn btn-outline btn-sm';
-    sb.textContent = sortLabel();
-    sb.onclick = () => sortCurrent();
-    acts.appendChild(sb);
     const db2 = document.createElement('button');
     db2.className = 'btn btn-danger btn-sm';
     db2.textContent = isFolder ? 'Delete Folder' : 'Delete Client';
@@ -968,15 +968,22 @@ function onSearch(q) {
     return p;
   }
 
-  function renderGroup(label, items, renderFn) {
+  function renderGroup(label, items, renderFn, useGrid=false) {
     if (!items.length) return;
     const lbl = document.createElement('div');
     lbl.className = 'sr-section-label'; lbl.textContent = label;
     resultsEl.appendChild(lbl);
-    items.forEach(renderFn);
+    if (useGrid) {
+      const grid = document.createElement('div');
+      grid.className = 'links-grid';
+      items.forEach(item => { renderFn(item, grid); });
+      resultsEl.appendChild(grid);
+    } else {
+      items.forEach(item => renderFn(item, resultsEl));
+    }
   }
 
-  renderGroup('Clients', matches.filter(m=>m.type==='client'), item => {
+  renderGroup('Clients', matches.filter(m=>m.type==='client'), (item, container) => {
     const el = document.createElement('div');
     el.className = 'sr-item';
     el.style.setProperty('--sr-color', item.clientColor);
@@ -985,10 +992,10 @@ function onSearch(q) {
       <div class="sr-body"><div class="sr-name">${highlight(item.name, searchQuery)}</div></div>
       <span class="sr-arrow">→</span>`;
     el.onclick = () => { nav=[item.clientId]; clearSearch(); renderHome(); };
-    resultsEl.appendChild(el);
+    container.appendChild(el);
   });
 
-  renderGroup('Folders', matches.filter(m=>m.type==='folder'), item => {
+  renderGroup('Folders', matches.filter(m=>m.type==='folder'), (item, container) => {
     const el = document.createElement('div');
     el.className = 'sr-item';
     el.style.setProperty('--sr-color', item.clientColor);
@@ -1000,24 +1007,28 @@ function onSearch(q) {
       </div>
       <span class="sr-arrow">→</span>`;
     el.onclick = () => { nav=[item.clientId, item.folderId]; clearSearch(); renderDetail(); };
-    resultsEl.appendChild(el);
+    container.appendChild(el);
   });
 
-  renderGroup('Links', matches.filter(m=>m.type==='link'), item => {
-    const el = document.createElement('div');
-    el.className = 'sr-item';
-    el.style.setProperty('--sr-color', item.clientColor);
-    el.innerHTML = `
-      <img class="sr-favicon" src="${faviconUrl(item.url)}" data-url="${esc(item.url)}" alt="" loading="lazy" onload="onFaviconLoad(this)" onerror="faviconFallback(this,this.dataset.url)">
-      <div class="sr-body">
-        <div class="sr-name">${highlight(item.name, searchQuery)}</div>
-        <div class="sr-path">${pathHtml(item)}</div>
-        <div class="sr-url">${highlight(item.url, searchQuery)}</div>
+  renderGroup('Links', matches.filter(m=>m.type==='link'), (item, container) => {
+    const card = document.createElement('div');
+    card.className = 'link-card';
+    card.style.setProperty('--link-color', item.clientColor);
+    card.style.setProperty('--link-bg', item.clientColor + '22');
+    // Path breadcrumb: Client › Folder (if any)
+    let pathHtml2 = `<span style="color:${item.clientColor};font-weight:600">${esc(item.clientName)}</span>`;
+    if (item.folderName) pathHtml2 += `<span style="opacity:.5;font-size:10px;margin:0 3px">›</span><span>📁 ${esc(item.folderName)}</span>`;
+    card.innerHTML = `
+      <a class="link-card-overlay" href="${esc(item.url)}" target="_blank" rel="noopener"></a>
+      <div class="link-top">
+        <img class="link-favicon" src="${faviconUrl(item.url)}" data-url="${esc(item.url)}" alt="" loading="lazy" onload="onFaviconLoad(this)" onerror="faviconFallback(this,this.dataset.url)">
+        <span class="link-arrow">↗</span>
       </div>
-      <span class="sr-arrow">↗</span>`;
-    el.onclick = () => window.open(item.url, '_blank', 'noopener');
-    resultsEl.appendChild(el);
-  });
+      <div class="link-name">${highlight(item.name, searchQuery)}</div>
+      <div class="link-url">${highlight(item.url, searchQuery)}</div>
+      <div style="display:flex;align-items:center;gap:3px;margin-top:4px;font-size:11px;color:var(--muted);flex-wrap:wrap">${pathHtml2}</div>`;
+    container.appendChild(card);
+  }, true);
 }
 
 // Clear search state whenever we navigate
