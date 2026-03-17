@@ -364,6 +364,7 @@ body.dark .topbar { background:rgba(24,22,15,.85); }
 .s-achievements { --c:#5c7a6b; }
 .s-extra      { --c:#6b8a9b; }
 .s-lessons    { --c:#7a9b6b; }
+.s-lanter     { --c:#9b6b7a; }
 
 .card-icon    { background:color-mix(in srgb,var(--c) 14%,var(--surface2)); color:var(--c); }
 .card-title   { color:var(--c); }
@@ -766,7 +767,8 @@ var SECTIONS = [
   {cls:'s-projects',     icon:'🛠️', title:'Project Updates',           field:'projects'},
   {cls:'s-achievements', icon:'🏆', title:'Achievements',              field:'achievements'},
   {cls:'s-extra',        icon:'✨', title:'Extra Requirements',        field:'extra'},
-  {cls:'s-lessons',      icon:'📝', title:'Lessons & Areas for Improvement', field:'lessons'}
+  {cls:'s-lessons',      icon:'📝', title:'Lessons & Areas for Improvement', field:'lessons'},
+  {cls:'s-lanter',       icon:'📣', title:'Lanter Announcements',      field:'lanter'}
 ];
 
 var data = {};
@@ -1202,7 +1204,7 @@ function openAddClient(){selectedColor=COLORS[0];document.getElementById('newCli
 function selectColor(c,el){selectedColor=c;document.querySelectorAll('.color-opt').forEach(function(o){o.classList.remove('selected');});el.classList.add('selected');}
 function confirmAddClient(){var name=document.getElementById('newClientName').value.trim();if(!name){alert('Please enter a client name.');return;}var id='c_'+Date.now();data[id]={name,color:selectedColor,pages:{}};syncColor(name,selectedColor);currentClientId=id;currentPage=null;saveData();renderSidebar();renderEmptyState();closeModal('addClientModal');}
 function openAddQuarter(cid){addingQuarterForClient=cid;document.getElementById('newYear').value=new Date().getFullYear();openModal('addQuarterModal');}
-function confirmAddQuarter(){var q=document.getElementById('newQuarter').value,y=document.getElementById('newYear').value,key=q+' '+y,client=data[addingQuarterForClient];if(!client)return;if(client.pages[key]){alert(key+' already exists.');return;}client.pages[key]={dateMode:'month',date:{},support:'',strategy:'',security:'',projects:'',achievements:'',extra:'',lessons:'',support_html:'',strategy_html:'',security_html:'',projects_html:'',achievements_html:'',extra_html:'',lessons_html:'',supportMetrics:{}};saveData();selectPage(addingQuarterForClient,key);closeModal('addQuarterModal');}
+function confirmAddQuarter(){var q=document.getElementById('newQuarter').value,y=document.getElementById('newYear').value,key=q+' '+y,client=data[addingQuarterForClient];if(!client)return;if(client.pages[key]){alert(key+' already exists.');return;}client.pages[key]={dateMode:'month',date:{},support:'',strategy:'',security:'',projects:'',achievements:'',extra:'',lessons:'',lanter:'',support_html:'',strategy_html:'',security_html:'',projects_html:'',achievements_html:'',extra_html:'',lessons_html:'',lanter_html:'',supportMetrics:{}};saveData();selectPage(addingQuarterForClient,key);closeModal('addQuarterModal');}
 function openModal(id){document.getElementById(id).classList.add('show');setTimeout(function(){var i=document.querySelector('#'+id+' input:not([type=number])');if(i)i.focus();},100);}
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 
