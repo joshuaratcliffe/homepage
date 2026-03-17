@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNS Lookup</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f0eb; --bg2:#ede8e0; --surface:#fff; --surface2:#faf7f4;
+  --border:#e0d9d0; --border2:#cfc8be; --text:#1a1714; --text2:#4a4540;
+  --muted:#8a847c; --accent:#c96442; --accent-light:#f5e8e2;
+  --shadow:rgba(60,40,20,0.08); --shadow-lg:rgba(60,40,20,0.13);
+  --mono:'JetBrains Mono',monospace;
+}
+body.dark {
+  --bg:#18160f; --bg2:#211e15; --surface:#26221a; --surface2:#2e2a20;
+  --border:#38332a; --border2:#4a4438; --text:#f0ebe3; --text2:#b8b0a4;
+  --muted:#7a7268; --accent:#d4714e; --accent-light:rgba(212,113,78,0.15);
+  --shadow:rgba(0,0,0,0.3); --shadow-lg:rgba(0,0,0,0.5);
+}
+*{ margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; transition:background .3s,color .3s; }
+body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image: radial-gradient(ellipse 70% 50% at 10% 0%,rgba(201,100,66,.07) 0%,transparent 55%), radial-gradient(ellipse 50% 60% at 90% 100%,rgba(92,122,107,.06) 0%,transparent 50%); }
+body.dark::before { background-image: radial-gradient(ellipse 70% 50% at 10% 0%,rgba(212,113,78,.09) 0%,transparent 55%), radial-gradient(ellipse 50% 60% at 90% 100%,rgba(92,122,107,.07) 0%,transparent 50%); }
+
+/* ── HEADER ── */
+header { position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:20px 44px; background:rgba(255,255,255,.8); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); transition:background .3s,border-color .3s; }
+body.dark header { background:rgba(24,22,15,.85); }
+.logo { font-family:'Lora',serif; font-size:20px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:9px; text-decoration:none; }
+.logo-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+.header-right { display:flex; align-items:center; gap:10px; }
+.nav-link { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; border:1px solid var(--border2); background:var(--surface2); color:var(--text2); font-size:13px; font-weight:500; text-decoration:none; transition:all .15s; }
+.nav-link:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+.dark-btn { width:36px; height:36px; border-radius:8px; border:1px solid var(--border2); background:var(--surface2); color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; transition:all .15s; }
+.dark-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+/* ── MAIN ── */
+main { position:relative; z-index:1; padding:52px 44px 100px; max-width:900px; margin:0 auto; }
+
+.page-title { font-family:'Lora',serif; font-size:32px; font-weight:600; letter-spacing:-.5px; margin-bottom:6px; }
+.page-title em { color:var(--accent); font-style:italic; font-weight:400; }
+.page-sub { font-size:14px; color:var(--muted); margin-bottom:36px; }
+
+/* ── SEARCH BAR ── */
+.search-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:0 1px 3px var(--shadow); margin-bottom:20px; }
+.input-row { display:flex; gap:10px; }
+.domain-input {
+  flex:1; background:var(--surface2); border:1px solid var(--border);
+  border-radius:10px; padding:13px 16px; font-size:15px;
+  font-family:var(--mono); color:var(--text); outline:none;
+  transition:border-color .18s, box-shadow .18s;
+}
+.domain-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(201,100,66,.1); }
+.domain-input::placeholder { color:var(--muted); font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; }
+.lookup-btn {
+  padding:13px 22px; background:var(--accent); color:#fff; border:none;
+  border-radius:10px; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px;
+  font-weight:600; cursor:pointer; transition:all .18s; white-space:nowrap;
+  box-shadow:0 1px 3px rgba(201,100,66,.3);
+}
+.lookup-btn:hover { background:#b85838; transform:translateY(-1px); }
+.lookup-btn:active { transform:translateY(0); }
+.lookup-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+/* ── RECORD TYPE BUTTONS ── */
+.record-types { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+.type-btn {
+  padding:7px 16px; border-radius:8px; border:1px solid var(--border2);
+  background:var(--surface2); color:var(--text2);
+  font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600;
+  cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; gap:6px;
+}
+.type-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+.type-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); box-shadow:0 1px 4px rgba(201,100,66,.3); }
+.type-btn .type-dot { width:7px; height:7px; border-radius:50%; background:currentColor; opacity:.6; }
+
+/* ── RESULTS ── */
+.results-area { display:flex; flex-direction:column; gap:14px; }
+
+.result-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:14px; overflow:hidden;
+  box-shadow:0 1px 3px var(--shadow);
+  animation:fadeUp .25s ease both;
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+.result-header {
+  display:flex; align-items:center; gap:12px;
+  padding:14px 18px; border-bottom:1px solid var(--border);
+  background:var(--surface2);
+}
+.result-type-badge {
+  font-family:var(--mono); font-size:12px; font-weight:500;
+  padding:3px 10px; border-radius:6px; background:var(--accent-light);
+  color:var(--accent); flex-shrink:0;
+}
+.result-domain { font-family:var(--mono); font-size:13px; color:var(--muted); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.result-count { font-size:12px; color:var(--muted); flex-shrink:0; }
+
+.result-body { padding:0; }
+
+.record-row {
+  display:grid; align-items:start; gap:12px;
+  padding:12px 18px; border-bottom:1px solid var(--border);
+  font-size:13px;
+  transition:background .12s;
+}
+.record-row:last-child { border-bottom:none; }
+.record-row:hover { background:var(--surface2); }
+
+/* column layouts per type */
+.record-row.type-a, .record-row.type-aaaa   { grid-template-columns:1fr 80px; }
+.record-row.type-mx                          { grid-template-columns:40px 1fr 80px; }
+.record-row.type-ns, .record-row.type-cname  { grid-template-columns:1fr 80px; }
+.record-row.type-txt                         { grid-template-columns:1fr; }
+.record-row.type-soa                         { grid-template-columns:1fr; }
+.record-row.type-srv                         { grid-template-columns:40px 1fr 80px; }
+.record-row.type-caa                         { grid-template-columns:40px 1fr 80px; }
+
+.rec-value { font-family:var(--mono); color:var(--text); word-break:break-all; line-height:1.55; }
+.rec-ttl { font-family:var(--mono); font-size:11px; color:var(--muted); text-align:right; align-self:center; }
+.rec-prio { font-family:var(--mono); font-size:12px; color:var(--accent); font-weight:500; align-self:center; }
+.rec-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:3px; }
+
+/* copy button */
+.rec-copy { background:none; border:none; cursor:pointer; color:var(--muted); font-size:12px; padding:2px 6px; border-radius:4px; transition:all .12s; opacity:0; }
+.record-row:hover .rec-copy { opacity:1; }
+.rec-copy:hover { background:var(--border); color:var(--text); }
+
+/* states */
+.state-loading { display:flex; align-items:center; gap:12px; padding:24px 20px; color:var(--muted); font-size:14px; }
+.spinner { width:18px; height:18px; border:2px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.state-empty { padding:28px 20px; text-align:center; color:var(--muted); font-size:13.5px; }
+.state-empty .empty-icon { font-size:28px; opacity:.4; margin-bottom:8px; }
+
+.state-error { padding:16px 18px; background:rgba(192,57,43,.07); border-left:3px solid #c0392b; margin:12px; border-radius:8px; font-size:13px; color:#c0392b; }
+
+/* history */
+.history-row { display:flex; align-items:center; gap:8px; margin-top:14px; flex-wrap:wrap; }
+.history-label { font-size:12px; color:var(--muted); font-weight:600; }
+.history-chip { padding:4px 11px; border-radius:20px; background:var(--surface2); border:1px solid var(--border); font-family:var(--mono); font-size:12px; color:var(--text2); cursor:pointer; transition:all .15s; }
+.history-chip:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+
+@media(max-width:600px) {
+  header { padding:16px 20px; }
+  main { padding:32px 20px 80px; }
+  .input-row { flex-direction:column; }
+  .record-row.type-mx, .record-row.type-srv, .record-row.type-caa { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html"><span class="logo-dot"></span>home.</a>
+  <div class="header-right">
+    <a class="nav-link" href="index.html">← home.</a>
+    <a class="nav-link" href="reports.html">📊 Reports</a>
+    <a class="nav-link" href="clients.html">🏢 Clients</a>
+    <button class="dark-btn" id="darkBtn" onclick="toggleDark()">🌙</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-title">DNS <em>Lookup</em></div>
+  <div class="page-sub">Query DNS records for any domain using Cloudflare's public DNS resolver.</div>
+
+  <div class="search-card">
+    <div class="input-row">
+      <input class="domain-input" id="domainInput" type="text" placeholder="Enter a domain — e.g. example.com"
+        onkeydown="if(event.key==='Enter') lookupActive()"
+        oninput="onDomainInput(this.value)">
+      <button class="lookup-btn" id="lookupBtn" onclick="lookupActive()" disabled>Lookup</button>
+    </div>
+
+    <div class="record-types" id="recordTypes">
+      <!-- rendered by JS -->
+    </div>
+
+    <div class="history-row" id="historyRow" style="display:none">
+      <span class="history-label">Recent:</span>
+      <div id="historyChips"></div>
+    </div>
+  </div>
+
+  <div class="results-area" id="resultsArea"></div>
+</main>
+
+<script>
+// ── CONFIG ──
+const DNS_API = 'https://cloudflare-dns.com/dns-query';
+
+const RECORD_TYPES = [
+  { type:'A',     label:'A',     desc:'IPv4 address',         icon:'🔵' },
+  { type:'AAAA',  label:'AAAA',  desc:'IPv6 address',         icon:'🟣' },
+  { type:'MX',    label:'MX',    desc:'Mail servers',         icon:'📧' },
+  { type:'NS',    label:'NS',    desc:'Nameservers',          icon:'🌐' },
+  { type:'CNAME', label:'CNAME', desc:'Canonical name alias', icon:'🔀' },
+  { type:'TXT',   label:'TXT',   desc:'Text records / SPF / DKIM', icon:'📄' },
+  { type:'SOA',   label:'SOA',   desc:'Start of authority',   icon:'🏛' },
+  { type:'SRV',   label:'SRV',   desc:'Service locator',      icon:'⚙️' },
+  { type:'CAA',   label:'CAA',   desc:'Cert authority',       icon:'🔒' },
+];
+
+// Active record types — A, MX, NS, TXT on by default
+let activeTypes = new Set(['A','MX','NS','TXT']);
+let history     = JSON.parse(localStorage.getItem('dns_history') || '[]');
+let lastDomain  = '';
+
+// ── INIT ──
+function init() {
+  renderTypeButtons();
+  renderHistory();
+  applyDark();
+}
+
+// ── TYPE BUTTONS ──
+function renderTypeButtons() {
+  const wrap = document.getElementById('recordTypes');
+  wrap.innerHTML = RECORD_TYPES.map(rt => `
+    <button class="type-btn${activeTypes.has(rt.type)?' active':''}"
+      onclick="toggleType('${rt.type}')"
+      title="${rt.desc}">
+      <span>${rt.icon}</span> ${rt.label}
+    </button>`).join('');
+}
+
+function toggleType(type) {
+  if (activeTypes.has(type)) {
+    if (activeTypes.size === 1) return; // keep at least one
+    activeTypes.delete(type);
+  } else {
+    activeTypes.add(type);
+  }
+  renderTypeButtons();
+  // Re-run lookup if domain already entered
+  if (lastDomain) runLookup(lastDomain);
+}
+
+// ── INPUT ──
+function onDomainInput(val) {
+  const clean = val.trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'');
+  document.getElementById('lookupBtn').disabled = !clean;
+}
+
+function lookupActive() {
+  const raw   = document.getElementById('domainInput').value.trim();
+  const domain = raw.replace(/^https?:\/\//,'').replace(/\/.*$/,'').toLowerCase();
+  if (!domain) return;
+  document.getElementById('domainInput').value = domain;
+  runLookup(domain);
+}
+
+// ── LOOKUP ──
+async function runLookup(domain) {
+  lastDomain = domain;
+  addHistory(domain);
+
+  const resultsArea = document.getElementById('resultsArea');
+  resultsArea.innerHTML = '';
+
+  // Show loading cards for each active type
+  const types = [...activeTypes];
+  const cards  = {};
+
+  types.forEach((type, i) => {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.style.animationDelay = `${i * 0.04}s`;
+    card.id = `result_${type}`;
+    card.innerHTML = `
+      <div class="result-header">
+        <span class="result-type-badge">${type}</span>
+        <span class="result-domain">${domain}</span>
+      </div>
+      <div class="result-body">
+        <div class="state-loading"><div class="spinner"></div> Querying…</div>
+      </div>`;
+    resultsArea.appendChild(card);
+    cards[type] = card;
+  });
+
+  // Fetch all types in parallel
+  await Promise.all(types.map(async type => {
+    const card = cards[type];
+    try {
+      const res  = await fetch(`${DNS_API}?name=${encodeURIComponent(domain)}&type=${type}`, {
+        headers: { 'Accept': 'application/dns-json' }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      renderResult(card, type, domain, json);
+    } catch(err) {
+      card.querySelector('.result-body').innerHTML =
+        `<div class="state-error">⚠ Could not fetch ${type} records — ${err.message}</div>`;
+    }
+  }));
+}
+
+// ── RENDER RESULT ──
+function renderResult(card, type, domain, json) {
+  const answers = json.Answer || [];
+  const body    = card.querySelector('.result-body');
+  const header  = card.querySelector('.result-header');
+
+  // Update count
+  const countEl = header.querySelector('.result-count') || document.createElement('span');
+  countEl.className = 'result-count';
+  countEl.textContent = answers.length ? `${answers.length} record${answers.length!==1?'s':''}` : 'No records';
+  if (!header.querySelector('.result-count')) header.appendChild(countEl);
+
+  if (!answers.length) {
+    body.innerHTML = `<div class="state-empty"><div class="empty-icon">∅</div>No ${type} records found for ${domain}</div>`;
+    return;
+  }
+
+  body.innerHTML = answers.map(rec => renderRecord(type, rec)).join('');
+}
+
+function fmtTTL(ttl) {
+  if (!ttl) return '';
+  if (ttl < 60)   return `${ttl}s`;
+  if (ttl < 3600) return `${Math.round(ttl/60)}m`;
+  return `${Math.round(ttl/3600)}h`;
+}
+
+function copyVal(val) {
+  navigator.clipboard.writeText(val).catch(() => {});
+}
+
+function renderRecord(type, rec) {
+  const data = String(rec.data || '').trim();
+  const ttl  = fmtTTL(rec.TTL);
+  const cls  = `record-row type-${type.toLowerCase()}`;
+
+  switch(type) {
+    case 'A':
+    case 'AAAA':
+      return `<div class="${cls}">
+        <span class="rec-value">${esc(data)} <button class="rec-copy" onclick="copyVal('${esc(data)}')" title="Copy">⎘</button></span>
+        <span class="rec-ttl">${ttl}</span>
+      </div>`;
+
+    case 'MX': {
+      const parts = data.split(' ');
+      const prio  = parts[0] || '';
+      const host  = parts.slice(1).join(' ') || data;
+      return `<div class="${cls}">
+        <span class="rec-prio">${esc(prio)}</span>
+        <span class="rec-value">${esc(host)} <button class="rec-copy" onclick="copyVal('${esc(host)}')" title="Copy">⎘</button></span>
+        <span class="rec-ttl">${ttl}</span>
+      </div>`;
+    }
+
+    case 'NS':
+    case 'CNAME':
+      return `<div class="${cls}">
+        <span class="rec-value">${esc(data)} <button class="rec-copy" onclick="copyVal('${esc(data)}')" title="Copy">⎘</button></span>
+        <span class="rec-ttl">${ttl}</span>
+      </div>`;
+
+    case 'TXT': {
+      const clean = data.replace(/^"|"$/g,'').replace(/" "/g,'');
+      return `<div class="${cls}">
+        <div>
+          <div class="rec-value">${esc(clean)} <button class="rec-copy" onclick="copyVal('${esc(clean)}')" title="Copy">⎘</button></div>
+          <div class="rec-ttl" style="text-align:left;margin-top:4px">${ttl}</div>
+        </div>
+      </div>`;
+    }
+
+    case 'SOA': {
+      const parts   = data.split(' ');
+      const fields  = ['Primary NS','Responsible','Serial','Refresh','Retry','Expire','Min TTL'];
+      const rows    = parts.map((v,i) => `<div style="display:flex;gap:12px;padding:4px 0;border-bottom:1px solid var(--border)"><span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;min-width:110px">${fields[i]||'—'}</span><span class="rec-value">${esc(v)}</span></div>`).join('');
+      return `<div class="${cls}"><div style="width:100%">${rows}</div></div>`;
+    }
+
+    case 'SRV': {
+      const parts = data.split(' ');
+      const prio  = parts[0] || '';
+      const rest  = parts.slice(1).join(' ');
+      return `<div class="${cls}">
+        <span class="rec-prio">${esc(prio)}</span>
+        <span class="rec-value">${esc(rest)} <button class="rec-copy" onclick="copyVal('${esc(rest)}')" title="Copy">⎘</button></span>
+        <span class="rec-ttl">${ttl}</span>
+      </div>`;
+    }
+
+    case 'CAA': {
+      const parts = data.split(' ');
+      const flag  = parts[0] || '';
+      const rest  = parts.slice(1).join(' ');
+      return `<div class="${cls}">
+        <span class="rec-prio">${esc(flag)}</span>
+        <span class="rec-value">${esc(rest)} <button class="rec-copy" onclick="copyVal('${esc(rest)}')" title="Copy">⎘</button></span>
+        <span class="rec-ttl">${ttl}</span>
+      </div>`;
+    }
+
+    default:
+      return `<div class="${cls}"><span class="rec-value">${esc(data)}</span><span class="rec-ttl">${ttl}</span></div>`;
+  }
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── HISTORY ──
+function addHistory(domain) {
+  history = [domain, ...history.filter(d => d !== domain)].slice(0, 8);
+  localStorage.setItem('dns_history', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const row   = document.getElementById('historyRow');
+  const chips = document.getElementById('historyChips');
+  if (!history.length) { row.style.display='none'; return; }
+  row.style.display = 'flex';
+  chips.innerHTML = history.map(d =>
+    `<span class="history-chip" onclick="useDomain('${esc(d)}')">${esc(d)}</span>`
+  ).join('');
+}
+
+function useDomain(domain) {
+  document.getElementById('domainInput').value = domain;
+  document.getElementById('lookupBtn').disabled = false;
+  runLookup(domain);
+}
+
+// ── DARK MODE ──
+let darkMode = localStorage.getItem('chub-dark') === '1';
+function applyDark() { document.body.classList.toggle('dark', darkMode); document.getElementById('darkBtn').textContent = darkMode ? '☀️' : '🌙'; }
+function toggleDark() { darkMode = !darkMode; localStorage.setItem('chub-dark', darkMode?'1':'0'); applyDark(); }
+
+init();
+</script>
+</body>
+</html>
