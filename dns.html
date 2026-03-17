@@ -237,15 +237,6 @@ body.dark .parsed-warn { background:rgba(184,134,11,.12); }
       <!-- rendered by JS -->
     </div>
 
-    <div id="dkimSelectorRow" style="display:none;margin-top:12px;align-items:center;gap:8px;flex-wrap:wrap">
-      <label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">DKIM Selector</label>
-      <input id="dkimSelector" type="text" placeholder="e.g. google, default, selector1…"
-        style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--text);outline:none;transition:border-color .18s;width:240px"
-        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor=''"
-        onkeydown="if(event.key==='Enter'&&lastDomain)runLookup(lastDomain)">
-      <span style="font-size:12px;color:var(--muted)">Common selectors: google, default, selector1, selector2, dkim, mail, k1</span>
-    </div>
-
     <div class="history-row" id="historyRow" style="display:none">
       <span class="history-label">Recent:</span>
       <div id="historyChips"></div>
@@ -304,7 +295,6 @@ function toggleType(type) {
     activeTypes.add(type);
   }
   renderTypeButtons();
-  document.getElementById('dkimSelectorRow').style.display = activeTypes.has('DKIM') ? 'flex' : 'none';
   if (lastDomain) runLookup(lastDomain);
 }
 
@@ -323,16 +313,20 @@ function lookupActive() {
 }
 
 // ── LOOKUP ──
+// Common DKIM selectors to probe automatically
+const DKIM_SELECTORS = [
+  'google','default','selector1','selector2','dkim','mail','k1','k2',
+  'smtp','email','mimecast','mailjet','sendgrid','amazonses','mandrill',
+  'protonmail','zoho','outlook','s1','s2','key1','key2','dkim1','dkim2',
+  'sig1','20161025','20210112','20230601'
+];
+
 function resolveQuery(type, domain) {
-  // Returns { queryName, queryType, label }
   switch(type) {
-    case 'SPF':   return { queryName: domain,              queryType: 'TXT',  label: 'SPF'   };
-    case 'DMARC': return { queryName: `_dmarc.${domain}`,  queryType: 'TXT',  label: 'DMARC' };
-    case 'DKIM': {
-      const sel = (document.getElementById('dkimSelector').value.trim() || 'default');
-      return { queryName: `${sel}._domainkey.${domain}`, queryType: 'TXT', label: `DKIM (${sel})` };
-    }
-    default:      return { queryName: domain,              queryType: type,   label: type    };
+    case 'SPF':   return [{ queryName: domain,             queryType: 'TXT', label: 'SPF'   }];
+    case 'DMARC': return [{ queryName: `_dmarc.${domain}`, queryType: 'TXT', label: 'DMARC' }];
+    case 'DKIM':  return DKIM_SELECTORS.map(sel => ({ queryName: `${sel}._domainkey.${domain}`, queryType: 'TXT', label: sel, selector: sel }));
+    default:      return [{ queryName: domain,             queryType: type,  label: type    }];
   }
 }
 
@@ -348,21 +342,23 @@ async function runLookup(domain) {
     resultsArea.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px">Select one or more record types above to look up.</div>';
     return;
   }
-  const cards = {};
 
+  // Create one result card per type
+  const cards = {};
   types.forEach((type, i) => {
-    const { label } = resolveQuery(type, domain);
     const card = document.createElement('div');
     card.className = 'result-card';
     card.style.animationDelay = `${i * 0.04}s`;
     card.id = `result_${type}`;
+    const displayLabel = type === 'DKIM' ? 'DKIM' : resolveQuery(type, domain)[0].label;
+    const displayDomain = type === 'DKIM' ? `*._domainkey.${domain}` : resolveQuery(type, domain)[0].queryName;
     card.innerHTML = `
       <div class="result-header">
-        <span class="result-type-badge">${label}</span>
-        <span class="result-domain">${resolveQuery(type, domain).queryName}</span>
+        <span class="result-type-badge">${displayLabel}</span>
+        <span class="result-domain">${displayDomain}</span>
       </div>
       <div class="result-body">
-        <div class="state-loading"><div class="spinner"></div> Querying…</div>
+        <div class="state-loading"><div class="spinner"></div> ${type === 'DKIM' ? `Probing ${DKIM_SELECTORS.length} common selectors…` : 'Querying…'}</div>
       </div>`;
     resultsArea.appendChild(card);
     cards[type] = card;
@@ -370,7 +366,65 @@ async function runLookup(domain) {
 
   await Promise.all(types.map(async type => {
     const card = cards[type];
-    const { queryName, queryType, label } = resolveQuery(type, domain);
+
+    if (type === 'DKIM') {
+      // Probe all selectors in parallel, collect hits
+      const queries = resolveQuery('DKIM', domain);
+      const results = await Promise.all(queries.map(async q => {
+        try {
+          const res = await fetch(`${DNS_API}?name=${encodeURIComponent(q.queryName)}&type=TXT`, {
+            headers: { 'Accept': 'application/dns-json' }
+          });
+          if (!res.ok) return null;
+          const json = await res.json();
+          const answers = (json.Answer || []).filter(a => String(a.data).includes('v=DKIM1') || String(a.data).includes('k='));
+          if (!answers.length) return null;
+          return { selector: q.selector, answers };
+        } catch { return null; }
+      }));
+
+      const hits = results.filter(Boolean);
+      const body = card.querySelector('.result-body');
+      const header = card.querySelector('.result-header');
+      const countEl = document.createElement('span');
+      countEl.className = 'result-count';
+      countEl.textContent = hits.length ? `${hits.length} selector${hits.length!==1?'s':''} found` : 'No selectors found';
+      header.appendChild(countEl);
+
+      if (!hits.length) {
+        body.innerHTML = `<div class="state-empty"><div class="empty-icon">∅</div>No DKIM records found — tried ${DKIM_SELECTORS.length} common selectors</div>`;
+        return;
+      }
+
+      body.innerHTML = hits.map(hit => {
+        return hit.answers.map(rec => {
+          const raw = String(rec.data).replace(/^"|"$/g,'').replace(/" "/g,'');
+          const parts = raw.split(/\s*;\s*/);
+          const tags = parts.filter(Boolean).map(p => {
+            const [k, ...rest] = p.split('=');
+            const v = rest.join('=');
+            const KEY = (k||'').trim().toLowerCase();
+            const VAL = (v||'').trim();
+            const labels = { 'v':['Version',VAL], 'k':['Key type',VAL], 'p':['Public key', VAL.length>40?VAL.slice(0,40)+'…':VAL], 'h':['Hash algo',VAL], 's':['Service',VAL], 't':['Flags',VAL], 'n':['Notes',VAL] };
+            const [label, display] = labels[KEY] || [KEY, VAL];
+            return `<div class="parsed-row"><span class="parsed-key">${esc(label)}</span><span class="parsed-val rec-mono" style="word-break:break-all">${esc(display)}</span></div>`;
+          }).join('');
+          return `<div class="record-row type-txt" style="flex-direction:column;gap:0">
+            <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px">
+              <span style="font-family:var(--mono);font-size:12px;font-weight:600;background:var(--accent-light);color:var(--accent);padding:2px 9px;border-radius:6px">${esc(hit.selector)}</span>
+              <span style="font-size:11px;color:var(--muted)">${esc(hit.selector)}._domainkey.${esc(domain)}</span>
+              <button class="rec-copy" onclick="copyVal('${esc(raw)}')" title="Copy raw" style="opacity:1">⎘</button>
+            </div>
+            <div class="parsed-table">${tags}</div>
+          </div>`;
+        }).join('');
+      }).join('');
+      return;
+    }
+
+    // Standard types
+    const queries = resolveQuery(type, domain);
+    const { queryName, queryType, label } = queries[0];
     try {
       const res  = await fetch(`${DNS_API}?name=${encodeURIComponent(queryName)}&type=${queryType}`, {
         headers: { 'Accept': 'application/dns-json' }
