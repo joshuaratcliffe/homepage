@@ -160,9 +160,13 @@ body.dark .parsed-warn { background:rgba(184,134,11,.12); }
 
 /* history */
 .history-row { display:flex; align-items:center; gap:8px; margin-top:14px; flex-wrap:wrap; }
-.history-label { font-size:12px; color:var(--muted); font-weight:600; }
-.history-chip { padding:4px 11px; border-radius:20px; background:var(--surface2); border:1px solid var(--border); font-family:var(--mono); font-size:12px; color:var(--text2); cursor:pointer; transition:all .15s; }
+.history-label { font-size:12px; color:var(--muted); font-weight:600; flex-shrink:0; }
+.history-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 6px 4px 11px; border-radius:20px; background:var(--surface2); border:1px solid var(--border); font-family:var(--mono); font-size:12px; color:var(--text2); cursor:pointer; transition:all .15s; }
 .history-chip:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+.history-chip.pinned { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
+.chip-label { cursor:pointer; }
+.chip-pin { background:none; border:none; cursor:pointer; font-size:11px; padding:0 3px; opacity:.5; transition:opacity .15s; color:inherit; line-height:1; }
+.chip-pin:hover { opacity:1; }
 
 @media(max-width:600px) {
   header { padding:16px 20px; }
@@ -268,6 +272,7 @@ const RECORD_TYPES = [
 // Active record types — none selected by default
 let activeTypes = new Set([]);
 let history     = JSON.parse(localStorage.getItem('dns_history') || '[]').slice(0, 3);
+let pinned      = JSON.parse(localStorage.getItem('dns_pinned')  || '[]');
 let lastDomain  = '';
 
 // ── INIT ──
@@ -665,19 +670,41 @@ function esc(s) {
 
 // ── HISTORY ──
 function addHistory(domain) {
-  history = [domain, ...history.filter(d => d !== domain)].slice(0, 3);
-  localStorage.setItem('dns_history', JSON.stringify(history));
+  // Don't add to recent if already pinned
+  if (!pinned.includes(domain)) {
+    history = [domain, ...history.filter(d => d !== domain)].slice(0, 3);
+    localStorage.setItem('dns_history', JSON.stringify(history));
+  }
+  renderHistory();
+}
+
+function togglePin(domain) {
+  if (pinned.includes(domain)) {
+    pinned = pinned.filter(d => d !== domain);
+  } else {
+    pinned = [...pinned, domain];
+    // Remove from recent since it's now pinned
+    history = history.filter(d => d !== domain);
+    localStorage.setItem('dns_history', JSON.stringify(history));
+  }
+  localStorage.setItem('dns_pinned', JSON.stringify(pinned));
   renderHistory();
 }
 
 function renderHistory() {
   const row   = document.getElementById('historyRow');
   const chips = document.getElementById('historyChips');
-  if (!history.length) { row.style.display='none'; return; }
+  const all   = [...pinned, ...history.filter(d => !pinned.includes(d))];
+  if (!all.length) { row.style.display='none'; return; }
   row.style.display = 'flex';
-  chips.innerHTML = history.map(d =>
-    `<span class="history-chip" onclick="useDomain('${esc(d)}')">${esc(d)}</span>`
-  ).join('');
+
+  chips.innerHTML = all.map(d => {
+    const isPinned = pinned.includes(d);
+    return `<span class="history-chip${isPinned?' pinned':''}">
+      <span class="chip-label" onclick="useDomain('${esc(d)}')">${esc(d)}</span>
+      <button class="chip-pin" onclick="togglePin('${esc(d)}')" title="${isPinned?'Unpin':'Pin'}">${isPinned?'📌':'📍'}</button>
+    </span>`;
+  }).join('');
 }
 
 function useDomain(domain) {
