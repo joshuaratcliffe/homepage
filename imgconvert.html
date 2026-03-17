@@ -257,12 +257,11 @@ function handleFiles(files) {
   [...files].forEach(file => {
     if (!file.type.startsWith('image/') && !/\.(heic|heif)$/i.test(file.name)) return;
     const id = uid();
-    const reader = new FileReader();
-    reader.onload = e => {
-      images.push({ id, file, name:file.name, sizeFmt:fmtSize(file.size), thumbUrl:e.target.result, outputBlob:null, outputUrl:null, status:'idle', selected:false });
-      render();
-    };
-    reader.readAsDataURL(file);
+    const isHeic = /\.(heic|heif)$/i.test(file.name) || file.type === 'image/heic' || file.type === 'image/heif';
+    // Use blob URL for thumbnail — much shorter than base64, works for all renderable formats
+    const thumbUrl = isHeic ? null : URL.createObjectURL(file);
+    images.push({ id, file, name:file.name, sizeFmt:fmtSize(file.size), thumbUrl, isHeic, outputBlob:null, outputUrl:null, status:'idle', selected:false });
+    render();
   });
 }
 
@@ -415,13 +414,19 @@ function updateActionBar() {
 
 function removeImage(id) {
   const img = images.find(x=>x.id===id);
-  if (img && img.outputUrl) URL.revokeObjectURL(img.outputUrl);
+  if (img) {
+    if (img.outputUrl) URL.revokeObjectURL(img.outputUrl);
+    if (img.thumbUrl && img.thumbUrl.startsWith('blob:')) URL.revokeObjectURL(img.thumbUrl);
+  }
   images = images.filter(x=>x.id!==id);
   render();
 }
 
 function clearAll() {
-  images.forEach(img => { if(img.outputUrl) URL.revokeObjectURL(img.outputUrl); });
+  images.forEach(img => {
+    if (img.outputUrl) URL.revokeObjectURL(img.outputUrl);
+    if (img.thumbUrl && img.thumbUrl.startsWith('blob:')) URL.revokeObjectURL(img.thumbUrl);
+  });
   images = [];
   render();
 }
@@ -475,9 +480,21 @@ function cardHTML(img) {
   const selectBox = img.status === 'done'
     ? `<div class="img-select" onclick="event.stopPropagation();toggleSelect('${img.id}')" title="Select"><span class="img-select-tick">✓</span></div>`
     : '';
+
+  // Show converted output if done, otherwise show source thumbnail
+  // HEIC files can't be displayed natively so show a placeholder until converted
+  let thumbContent;
+  if (img.status === 'done' && img.outputUrl) {
+    thumbContent = `<img class="img-thumb" id="thumb_${img.id}" src="${img.outputUrl}" alt="${img.name}">`;
+  } else if (img.isHeic) {
+    thumbContent = `<div class="img-thumb" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:11px;color:var(--muted)"><span style="font-size:32px;opacity:.4">🖼</span>HEIC</div>`;
+  } else {
+    thumbContent = `<img class="img-thumb" id="thumb_${img.id}" src="${img.thumbUrl}" alt="${img.name}">`;
+  }
+
   return `
     <div class="img-thumb-wrap" onclick="${img.status==='done'?`toggleSelect('${img.id}')`:''}" style="${img.status==='done'?'cursor:pointer':''}">
-      <img class="img-thumb" src="${img.thumbUrl}" alt="${img.name}">
+      ${thumbContent}
       ${selectBox}
       <button class="img-remove" onclick="event.stopPropagation();removeImage('${img.id}')" title="Remove">✕</button>
     </div>
