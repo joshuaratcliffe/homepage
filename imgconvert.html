@@ -7,6 +7,7 @@
 <title>Image Converter</title>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root {
   --bg:#f5f0eb; --bg2:#ede8e0; --surface:#fff; --surface2:#faf7f4;
@@ -121,6 +122,14 @@ body.dark .btn-danger { background:rgba(192,57,43,.15); color:#e57373; border-co
 .img-remove { position:absolute; top:6px; right:6px; width:24px; height:24px; border-radius:50%; background:rgba(0,0,0,.5); color:#fff; border:none; cursor:pointer; font-size:11px; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .15s; }
 .img-card:hover .img-remove { opacity:1; }
 
+/* selection checkbox */
+.img-select { position:absolute; top:8px; left:8px; width:22px; height:22px; border-radius:6px; border:2px solid rgba(255,255,255,.8); background:rgba(0,0,0,.25); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; z-index:2; }
+.img-select:hover { border-color:#fff; background:rgba(0,0,0,.45); }
+.img-card.selected .img-select { background:var(--accent); border-color:var(--accent); }
+.img-select-tick { color:#fff; font-size:12px; display:none; }
+.img-card.selected .img-select-tick { display:block; }
+.img-card.selected .img-thumb-wrap { outline:3px solid var(--accent); outline-offset:-3px; border-radius:2px; }
+
 .img-info { padding:10px 12px; flex:1; }
 .img-name { font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
 .img-meta { font-size:11px; color:var(--muted); }
@@ -207,7 +216,9 @@ body.dark .btn-danger { background:rgba(192,57,43,.15); color:#e57373; border-co
   <!-- ACTION BAR -->
   <div class="action-bar" id="actionBar" style="display:none">
     <button class="btn btn-primary" id="convertAllBtn" onclick="convertAll()">⚡ Convert All</button>
-    <button class="btn btn-outline" id="downloadAllBtn" onclick="downloadAll()" style="display:none">⬇ Download All</button>
+    <button class="btn btn-outline" id="downloadAllBtn" onclick="downloadZip('all')" style="display:none">⬇ Download All (.zip)</button>
+    <button class="btn btn-outline" id="downloadSelBtn" onclick="downloadZip('selected')" style="display:none">⬇ Download Selected (.zip)</button>
+    <button class="btn btn-outline" id="selectAllBtn" onclick="toggleSelectAll()" style="display:none">☐ Select All</button>
     <button class="btn btn-danger" onclick="clearAll()">✕ Clear All</button>
   </div>
 
@@ -224,7 +235,7 @@ body.dark .btn-danger { background:rgba(192,57,43,.15); color:#e57373; border-co
 <div class="toast" id="toast"></div>
 
 <script>
-let images   = []; // { id, file, name, sizeFmt, thumbUrl, outputBlob, outputUrl, status }
+let images   = []; // { id, file, name, sizeFmt, thumbUrl, outputBlob, outputUrl, status, selected }
 let outputFmt = 'image/jpeg';
 let quality   = 0.92;
 
@@ -248,7 +259,7 @@ function handleFiles(files) {
     const id = uid();
     const reader = new FileReader();
     reader.onload = e => {
-      images.push({ id, file, name:file.name, sizeFmt:fmtSize(file.size), thumbUrl:e.target.result, outputBlob:null, outputUrl:null, status:'idle' });
+      images.push({ id, file, name:file.name, sizeFmt:fmtSize(file.size), thumbUrl:e.target.result, outputBlob:null, outputUrl:null, status:'idle', selected:false });
       render();
     };
     reader.readAsDataURL(file);
@@ -323,7 +334,7 @@ async function convertAll() {
   await Promise.all(images.map(img => convertOne(img)));
   document.getElementById('convertAllBtn').disabled = false;
   const doneCount = images.filter(i=>i.status==='done').length;
-  document.getElementById('downloadAllBtn').style.display = doneCount > 1 ? '' : 'none';
+  updateActionBar();
   toast(`✓ ${doneCount} image${doneCount!==1?'s':''} converted`);
 }
 
@@ -336,17 +347,70 @@ function downloadOne(id) {
   a.click();
 }
 
-async function downloadAll() {
-  const done = images.filter(i=>i.status==='done');
-  if (!done.length) return;
-  // Download one by one with small delay to avoid browser blocking
-  for (const img of done) {
-    const a = document.createElement('a');
-    a.href = img.outputUrl;
-    a.download = baseName(img.name) + '.' + extFor(outputFmt);
+async function downloadZip(which) {
+  const targets = which === 'selected'
+    ? images.filter(i => i.status==='done' && i.selected)
+    : images.filter(i => i.status==='done');
+  if (!targets.length) { toast('No converted images to download'); return; }
+
+  const btn = which === 'selected'
+    ? document.getElementById('downloadSelBtn')
+    : document.getElementById('downloadAllBtn');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Zipping…';
+
+  try {
+    const zip = new JSZip();
+    for (const img of targets) {
+      const arrayBuf = await img.outputBlob.arrayBuffer();
+      zip.file(baseName(img.name) + '.' + extFor(outputFmt), arrayBuf);
+    }
+    const blob = await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level:6 } });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const d    = new Date();
+    a.href = url;
+    a.download = `converted-images-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.zip`;
     a.click();
-    await new Promise(r => setTimeout(r, 200));
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast(`✓ Downloaded ${targets.length} image${targets.length!==1?'s':''} as ZIP`);
+  } catch(e) {
+    toast('✗ Zip failed: ' + e.message);
   }
+  btn.disabled = false;
+  btn.textContent = origText;
+}
+
+/* ── SELECTION ── */
+function toggleSelect(id) {
+  const img = images.find(x=>x.id===id); if (!img) return;
+  img.selected = !img.selected;
+  // Update card class without full re-render
+  const card = document.getElementById('card_' + id);
+  if (card) card.classList.toggle('selected', img.selected);
+  updateActionBar();
+}
+
+function toggleSelectAll() {
+  const done = images.filter(i=>i.status==='done');
+  const allSelected = done.every(i=>i.selected);
+  done.forEach(i => {
+    i.selected = !allSelected;
+    const card = document.getElementById('card_' + i.id);
+    if (card) card.classList.toggle('selected', i.selected);
+  });
+  updateActionBar();
+}
+
+function updateActionBar() {
+  const done     = images.filter(i=>i.status==='done');
+  const selected = done.filter(i=>i.selected);
+  const allSel   = done.length > 0 && done.every(i=>i.selected);
+  document.getElementById('downloadAllBtn').style.display  = done.length > 0 ? '' : 'none';
+  document.getElementById('downloadSelBtn').style.display  = selected.length > 0 && selected.length < done.length ? '' : 'none';
+  document.getElementById('selectAllBtn').style.display    = done.length > 1 ? '' : 'none';
+  document.getElementById('selectAllBtn').textContent      = allSel ? '☑ Deselect All' : '☐ Select All';
 }
 
 function removeImage(id) {
@@ -364,9 +428,8 @@ function clearAll() {
 
 /* ── RENDER ── */
 function render() {
-  const content    = document.getElementById('content');
-  const actionBar  = document.getElementById('actionBar');
-  const dlAllBtn   = document.getElementById('downloadAllBtn');
+  const content   = document.getElementById('content');
+  const actionBar = document.getElementById('actionBar');
 
   if (!images.length) {
     actionBar.style.display = 'none';
@@ -375,14 +438,13 @@ function render() {
   }
 
   actionBar.style.display = 'flex';
-  const doneCount = images.filter(i=>i.status==='done').length;
-  dlAllBtn.style.display = doneCount > 1 ? '' : 'none';
+  updateActionBar();
 
   const grid = document.createElement('div');
   grid.className = 'images-grid';
   images.forEach(img => {
     const card = document.createElement('div');
-    card.className = 'img-card';
+    card.className = 'img-card' + (img.selected ? ' selected' : '');
     card.id = 'card_' + img.id;
     card.innerHTML = cardHTML(img);
     grid.appendChild(card);
@@ -393,7 +455,11 @@ function render() {
 
 function renderCard(img) {
   const card = document.getElementById('card_' + img.id);
-  if (card) card.innerHTML = cardHTML(img);
+  if (card) {
+    card.innerHTML = cardHTML(img);
+    card.classList.toggle('selected', !!img.selected);
+  }
+  updateActionBar();
 }
 
 function cardHTML(img) {
@@ -406,10 +472,14 @@ function cardHTML(img) {
   const downloadRow = img.status === 'done'
     ? `<button class="download-btn" onclick="downloadOne('${img.id}')">⬇ Download ${extFor(outputFmt).toUpperCase()}</button>`
     : '';
+  const selectBox = img.status === 'done'
+    ? `<div class="img-select" onclick="event.stopPropagation();toggleSelect('${img.id}')" title="Select"><span class="img-select-tick">✓</span></div>`
+    : '';
   return `
-    <div class="img-thumb-wrap">
+    <div class="img-thumb-wrap" onclick="${img.status==='done'?`toggleSelect('${img.id}')`:''}" style="${img.status==='done'?'cursor:pointer':''}">
       <img class="img-thumb" src="${img.thumbUrl}" alt="${img.name}">
-      <button class="img-remove" onclick="removeImage('${img.id}')" title="Remove">✕</button>
+      ${selectBox}
+      <button class="img-remove" onclick="event.stopPropagation();removeImage('${img.id}')" title="Remove">✕</button>
     </div>
     <div class="img-info">
       <div class="img-name" title="${img.name}">${img.name}</div>
