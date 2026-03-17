@@ -267,7 +267,7 @@ const RECORD_TYPES = [
 
 // Active record types — none selected by default
 let activeTypes = new Set([]);
-let history     = JSON.parse(localStorage.getItem('dns_history') || '[]');
+let history     = JSON.parse(localStorage.getItem('dns_history') || '[]').slice(0, 3);
 let lastDomain  = '';
 
 // ── INIT ──
@@ -665,7 +665,7 @@ function esc(s) {
 
 // ── HISTORY ──
 function addHistory(domain) {
-  history = [domain, ...history.filter(d => d !== domain)].slice(0, 8);
+  history = [domain, ...history.filter(d => d !== domain)].slice(0, 3);
   localStorage.setItem('dns_history', JSON.stringify(history));
   renderHistory();
 }
