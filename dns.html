@@ -11,6 +11,8 @@
   --border:#e0d9d0; --border2:#cfc8be; --text:#1a1714; --text2:#4a4540;
   --muted:#8a847c; --accent:#c96442; --accent-light:#f5e8e2;
   --shadow:rgba(60,40,20,0.08); --shadow-lg:rgba(60,40,20,0.13);
+  --green:#3d7a5c; --green-bg:rgba(61,122,92,0.1);
+  --amber:#9b8a5c;
   --mono:'JetBrains Mono',monospace;
 }
 body.dark {
@@ -18,6 +20,8 @@ body.dark {
   --border:#38332a; --border2:#4a4438; --text:#f0ebe3; --text2:#b8b0a4;
   --muted:#7a7268; --accent:#d4714e; --accent-light:rgba(212,113,78,0.15);
   --shadow:rgba(0,0,0,0.3); --shadow-lg:rgba(0,0,0,0.5);
+  --green:#4a6b5c; --green-bg:rgba(74,107,92,0.18);
+  --amber:#7a6b4a;
 }
 *{ margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; transition:background .3s,color .3s; }
@@ -130,6 +134,19 @@ main { position:relative; z-index:1; padding:52px 44px 100px; max-width:900px; m
 .rec-copy { background:none; border:none; cursor:pointer; color:var(--muted); font-size:12px; padding:2px 6px; border-radius:4px; transition:all .12s; opacity:0; }
 .record-row:hover .rec-copy { opacity:1; }
 .rec-copy:hover { background:var(--border); color:var(--text); }
+.rec-mono { font-family:var(--mono); }
+
+/* parsed tables for SPF/DMARC/DKIM */
+.parsed-table { display:flex; flex-direction:column; gap:3px; }
+.parsed-row { display:flex; align-items:baseline; gap:10px; padding:5px 8px; border-radius:6px; background:var(--surface2); }
+.parsed-key { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); min-width:120px; flex-shrink:0; }
+.parsed-val { font-size:13px; color:var(--text2); font-family:var(--mono); flex:1; word-break:break-all; }
+.parsed-ok   .parsed-key, .parsed-ok   .parsed-val { color:var(--green); }
+.parsed-ok   { background:var(--green-bg); }
+.parsed-warn .parsed-key, .parsed-warn .parsed-val { color:#b8860b; }
+.parsed-warn { background:rgba(184,134,11,.08); }
+body.dark .parsed-warn { background:rgba(184,134,11,.12); }
+.parsed-neutral .parsed-val { color:var(--amber); }
 
 /* states */
 .state-loading { display:flex; align-items:center; gap:12px; padding:24px 20px; color:var(--muted); font-size:14px; }
@@ -220,6 +237,15 @@ main { position:relative; z-index:1; padding:52px 44px 100px; max-width:900px; m
       <!-- rendered by JS -->
     </div>
 
+    <div id="dkimSelectorRow" style="display:none;margin-top:12px;align-items:center;gap:8px;flex-wrap:wrap">
+      <label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">DKIM Selector</label>
+      <input id="dkimSelector" type="text" placeholder="e.g. google, default, selector1…"
+        style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--text);outline:none;transition:border-color .18s;width:240px"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor=''"
+        onkeydown="if(event.key==='Enter'&&lastDomain)runLookup(lastDomain)">
+      <span style="font-size:12px;color:var(--muted)">Common selectors: google, default, selector1, selector2, dkim, mail, k1</span>
+    </div>
+
     <div class="history-row" id="historyRow" style="display:none">
       <span class="history-label">Recent:</span>
       <div id="historyChips"></div>
@@ -239,14 +265,17 @@ const RECORD_TYPES = [
   { type:'MX',    label:'MX',    desc:'Mail servers',         icon:'📧' },
   { type:'NS',    label:'NS',    desc:'Nameservers',          icon:'🌐' },
   { type:'CNAME', label:'CNAME', desc:'Canonical name alias', icon:'🔀' },
-  { type:'TXT',   label:'TXT',   desc:'Text records / SPF / DKIM', icon:'📄' },
+  { type:'TXT',   label:'TXT',   desc:'All text records',     icon:'📄' },
   { type:'SOA',   label:'SOA',   desc:'Start of authority',   icon:'🏛' },
   { type:'SRV',   label:'SRV',   desc:'Service locator',      icon:'⚙️' },
   { type:'CAA',   label:'CAA',   desc:'Cert authority',       icon:'🔒' },
+  { type:'SPF',   label:'SPF',   desc:'Sender Policy Framework — who can send email for this domain', icon:'✉️', pseudo:true },
+  { type:'DMARC', label:'DMARC', desc:'Domain-based Message Authentication — email policy', icon:'🛡', pseudo:true },
+  { type:'DKIM',  label:'DKIM',  desc:'DomainKeys Identified Mail — requires a selector', icon:'🔑', pseudo:true },
 ];
 
-// Active record types — A, MX, NS, TXT on by default
-let activeTypes = new Set(['A','MX','NS','TXT']);
+// Active record types — none selected by default
+let activeTypes = new Set([]);
 let history     = JSON.parse(localStorage.getItem('dns_history') || '[]');
 let lastDomain  = '';
 
@@ -270,13 +299,12 @@ function renderTypeButtons() {
 
 function toggleType(type) {
   if (activeTypes.has(type)) {
-    if (activeTypes.size === 1) return; // keep at least one
     activeTypes.delete(type);
   } else {
     activeTypes.add(type);
   }
   renderTypeButtons();
-  // Re-run lookup if domain already entered
+  document.getElementById('dkimSelectorRow').style.display = activeTypes.has('DKIM') ? 'flex' : 'none';
   if (lastDomain) runLookup(lastDomain);
 }
 
@@ -295,6 +323,19 @@ function lookupActive() {
 }
 
 // ── LOOKUP ──
+function resolveQuery(type, domain) {
+  // Returns { queryName, queryType, label }
+  switch(type) {
+    case 'SPF':   return { queryName: domain,              queryType: 'TXT',  label: 'SPF'   };
+    case 'DMARC': return { queryName: `_dmarc.${domain}`,  queryType: 'TXT',  label: 'DMARC' };
+    case 'DKIM': {
+      const sel = (document.getElementById('dkimSelector').value.trim() || 'default');
+      return { queryName: `${sel}._domainkey.${domain}`, queryType: 'TXT', label: `DKIM (${sel})` };
+    }
+    default:      return { queryName: domain,              queryType: type,   label: type    };
+  }
+}
+
 async function runLookup(domain) {
   lastDomain = domain;
   addHistory(domain);
@@ -302,19 +343,23 @@ async function runLookup(domain) {
   const resultsArea = document.getElementById('resultsArea');
   resultsArea.innerHTML = '';
 
-  // Show loading cards for each active type
   const types = [...activeTypes];
-  const cards  = {};
+  if (!types.length) {
+    resultsArea.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px">Select one or more record types above to look up.</div>';
+    return;
+  }
+  const cards = {};
 
   types.forEach((type, i) => {
+    const { label } = resolveQuery(type, domain);
     const card = document.createElement('div');
     card.className = 'result-card';
     card.style.animationDelay = `${i * 0.04}s`;
     card.id = `result_${type}`;
     card.innerHTML = `
       <div class="result-header">
-        <span class="result-type-badge">${type}</span>
-        <span class="result-domain">${domain}</span>
+        <span class="result-type-badge">${label}</span>
+        <span class="result-domain">${resolveQuery(type, domain).queryName}</span>
       </div>
       <div class="result-body">
         <div class="state-loading"><div class="spinner"></div> Querying…</div>
@@ -323,41 +368,57 @@ async function runLookup(domain) {
     cards[type] = card;
   });
 
-  // Fetch all types in parallel
   await Promise.all(types.map(async type => {
     const card = cards[type];
+    const { queryName, queryType, label } = resolveQuery(type, domain);
     try {
-      const res  = await fetch(`${DNS_API}?name=${encodeURIComponent(domain)}&type=${type}`, {
+      const res  = await fetch(`${DNS_API}?name=${encodeURIComponent(queryName)}&type=${queryType}`, {
         headers: { 'Accept': 'application/dns-json' }
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      renderResult(card, type, domain, json);
+      renderResult(card, type, queryName, json);
     } catch(err) {
       card.querySelector('.result-body').innerHTML =
-        `<div class="state-error">⚠ Could not fetch ${type} records — ${err.message}</div>`;
+        `<div class="state-error">⚠ Could not fetch ${label} records — ${err.message}</div>`;
     }
   }));
 }
 
 // ── RENDER RESULT ──
-function renderResult(card, type, domain, json) {
+function renderResult(card, type, queryName, json) {
   const answers = json.Answer || [];
   const body    = card.querySelector('.result-body');
   const header  = card.querySelector('.result-header');
 
-  // Update count
   const countEl = header.querySelector('.result-count') || document.createElement('span');
   countEl.className = 'result-count';
   countEl.textContent = answers.length ? `${answers.length} record${answers.length!==1?'s':''}` : 'No records';
   if (!header.querySelector('.result-count')) header.appendChild(countEl);
 
   if (!answers.length) {
-    body.innerHTML = `<div class="state-empty"><div class="empty-icon">∅</div>No ${type} records found for ${domain}</div>`;
+    const noRecMsg = type === 'DMARC' ? `No DMARC record found at ${queryName}` :
+                     type === 'DKIM'  ? `No DKIM record found — try a different selector` :
+                     type === 'SPF'   ? `No SPF record found for this domain` :
+                     `No ${type} records found for ${queryName}`;
+    body.innerHTML = `<div class="state-empty"><div class="empty-icon">∅</div>${noRecMsg}</div>`;
     return;
   }
 
-  body.innerHTML = answers.map(rec => renderRecord(type, rec)).join('');
+  // For pseudo-types, filter to only relevant records
+  let filtered = answers;
+  if (type === 'SPF') {
+    filtered = answers.filter(r => String(r.data).includes('v=spf1'));
+    if (!filtered.length) {
+      body.innerHTML = `<div class="state-empty"><div class="empty-icon">∅</div>No SPF record found (no TXT record starting with v=spf1)</div>`;
+      return;
+    }
+  }
+  if (type === 'DMARC' || type === 'DKIM') {
+    filtered = answers.filter(r => String(r.data).length > 0);
+  }
+
+  body.innerHTML = filtered.map(rec => renderRecord(type, rec)).join('');
 }
 
 function fmtTTL(ttl) {
@@ -441,8 +502,106 @@ function renderRecord(type, rec) {
       </div>`;
     }
 
-    default:
+    default: {
+      // ── SPF ──
+      if (type === 'SPF') {
+        const raw   = data.replace(/^"|"$/g,'').replace(/" "/g,'');
+        const parts = raw.split(/\s+/);
+        const tags  = parts.map(p => {
+          if (p === 'v=spf1') return `<div class="parsed-row"><span class="parsed-key">version</span><span class="parsed-val">SPF1</span></div>`;
+          if (p === '+all'||p==='all')  return `<div class="parsed-row parsed-warn"><span class="parsed-key">all</span><span class="parsed-val">⚠ Allow all — very permissive</span></div>`;
+          if (p === '-all')  return `<div class="parsed-row parsed-ok"><span class="parsed-key">all</span><span class="parsed-val">✓ Hard fail — strict</span></div>`;
+          if (p === '~all')  return `<div class="parsed-row parsed-neutral"><span class="parsed-key">all</span><span class="parsed-val">~ Soft fail</span></div>`;
+          if (p === '?all')  return `<div class="parsed-row parsed-neutral"><span class="parsed-key">all</span><span class="parsed-val">? Neutral</span></div>`;
+          if (p.startsWith('include:')) return `<div class="parsed-row"><span class="parsed-key">include</span><span class="parsed-val rec-mono">${esc(p.slice(8))}</span></div>`;
+          if (p.startsWith('ip4:'))    return `<div class="parsed-row"><span class="parsed-key">ip4</span><span class="parsed-val rec-mono">${esc(p.slice(4))}</span></div>`;
+          if (p.startsWith('ip6:'))    return `<div class="parsed-row"><span class="parsed-key">ip6</span><span class="parsed-val rec-mono">${esc(p.slice(4))}</span></div>`;
+          if (p.startsWith('a:'))      return `<div class="parsed-row"><span class="parsed-key">a</span><span class="parsed-val rec-mono">${esc(p.slice(2))}</span></div>`;
+          if (p === 'a')               return `<div class="parsed-row"><span class="parsed-key">a</span><span class="parsed-val">domain A record</span></div>`;
+          if (p.startsWith('mx:'))     return `<div class="parsed-row"><span class="parsed-key">mx</span><span class="parsed-val rec-mono">${esc(p.slice(3))}</span></div>`;
+          if (p === 'mx')              return `<div class="parsed-row"><span class="parsed-key">mx</span><span class="parsed-val">domain MX records</span></div>`;
+          if (p.startsWith('redirect=')) return `<div class="parsed-row"><span class="parsed-key">redirect</span><span class="parsed-val rec-mono">${esc(p.slice(9))}</span></div>`;
+          return `<div class="parsed-row"><span class="parsed-key">other</span><span class="parsed-val rec-mono">${esc(p)}</span></div>`;
+        }).join('');
+        return `<div class="record-row type-txt" style="flex-direction:column;gap:0">
+          <div style="margin-bottom:10px">
+            <div class="rec-label" style="margin-bottom:6px">Raw</div>
+            <div class="rec-value rec-mono" style="word-break:break-all">${esc(raw)} <button class="rec-copy" onclick="copyVal('${esc(raw)}')" title="Copy">⎘</button></div>
+          </div>
+          <div class="rec-label" style="margin-bottom:6px">Parsed</div>
+          <div class="parsed-table">${tags}</div>
+        </div>`;
+      }
+
+      // ── DMARC ──
+      if (type === 'DMARC') {
+        const raw   = data.replace(/^"|"$/g,'').replace(/" "/g,'');
+        const parts = raw.split(/\s*;\s*/);
+        const tags  = parts.filter(Boolean).map(p => {
+          const [k, ...rest] = p.split('=');
+          const v = rest.join('=');
+          const KEY = (k||'').trim().toLowerCase();
+          const VAL = (v||'').trim();
+          const labels = {
+            'v':       ['Version',           VAL],
+            'p':       ['Policy',            VAL === 'none' ? '⚠ none — monitoring only' : VAL === 'quarantine' ? '~ quarantine' : VAL === 'reject' ? '✓ reject — strict' : VAL],
+            'sp':      ['Subdomain policy',  VAL],
+            'rua':     ['Aggregate reports', VAL],
+            'ruf':     ['Forensic reports',  VAL],
+            'pct':     ['Percentage',        `${VAL}% of messages`],
+            'adkim':   ['DKIM alignment',    VAL === 's' ? 'strict' : 'relaxed'],
+            'aspf':    ['SPF alignment',     VAL === 's' ? 'strict' : 'relaxed'],
+            'fo':      ['Failure options',   VAL],
+            'rf':      ['Report format',     VAL],
+            'ri':      ['Report interval',   `${VAL}s`],
+          };
+          const [label, display] = labels[KEY] || [KEY, VAL];
+          const cls = display.startsWith('⚠') ? ' parsed-warn' : display.startsWith('✓') ? ' parsed-ok' : display.startsWith('~') ? ' parsed-neutral' : '';
+          return `<div class="parsed-row${cls}"><span class="parsed-key">${esc(label)}</span><span class="parsed-val">${esc(display)}</span></div>`;
+        }).join('');
+        return `<div class="record-row type-txt" style="flex-direction:column;gap:0">
+          <div style="margin-bottom:10px">
+            <div class="rec-label" style="margin-bottom:6px">Raw</div>
+            <div class="rec-value rec-mono" style="word-break:break-all">${esc(raw)} <button class="rec-copy" onclick="copyVal('${esc(raw)}')" title="Copy">⎘</button></div>
+          </div>
+          <div class="rec-label" style="margin-bottom:6px">Parsed</div>
+          <div class="parsed-table">${tags}</div>
+        </div>`;
+      }
+
+      // ── DKIM ──
+      if (type === 'DKIM') {
+        const raw   = data.replace(/^"|"$/g,'').replace(/" "/g,'');
+        const parts = raw.split(/\s*;\s*/);
+        const tags  = parts.filter(Boolean).map(p => {
+          const [k, ...rest] = p.split('=');
+          const v = rest.join('=');
+          const KEY = (k||'').trim().toLowerCase();
+          const VAL = (v||'').trim();
+          const labels = {
+            'v':  ['Version',    VAL],
+            'k':  ['Key type',   VAL],
+            'p':  ['Public key', VAL.length > 40 ? VAL.slice(0,40)+'…' : VAL],
+            'h':  ['Hash algo',  VAL],
+            's':  ['Service',    VAL],
+            't':  ['Flags',      VAL],
+            'n':  ['Notes',      VAL],
+          };
+          const [label, display] = labels[KEY] || [KEY, VAL];
+          return `<div class="parsed-row"><span class="parsed-key">${esc(label)}</span><span class="parsed-val rec-mono" style="word-break:break-all">${esc(display)}</span></div>`;
+        }).join('');
+        return `<div class="record-row type-txt" style="flex-direction:column;gap:0">
+          <div style="margin-bottom:10px">
+            <div class="rec-label" style="margin-bottom:6px">Raw</div>
+            <div class="rec-value rec-mono" style="word-break:break-all;font-size:12px">${esc(raw)} <button class="rec-copy" onclick="copyVal('${esc(raw)}')" title="Copy">⎘</button></div>
+          </div>
+          <div class="rec-label" style="margin-bottom:6px">Parsed</div>
+          <div class="parsed-table">${tags}</div>
+        </div>`;
+      }
+
       return `<div class="${cls}"><span class="rec-value">${esc(data)}</span><span class="rec-ttl">${ttl}</span></div>`;
+    }
   }
 }
 
