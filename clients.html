@@ -4,25 +4,20 @@
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='%23c96442'/></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DNS Lookup</title>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Client Information</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:#f5f0eb; --bg2:#ede8e0; --surface:#fff; --surface2:#faf7f4;
   --border:#e0d9d0; --border2:#cfc8be; --text:#1a1714; --text2:#4a4540;
   --muted:#8a847c; --accent:#c96442; --accent-light:#f5e8e2;
   --shadow:rgba(60,40,20,0.08); --shadow-lg:rgba(60,40,20,0.13);
-  --green:#3d7a5c; --green-bg:rgba(61,122,92,0.1);
-  --amber:#9b8a5c;
-  --mono:'JetBrains Mono',monospace;
 }
 body.dark {
   --bg:#18160f; --bg2:#211e15; --surface:#26221a; --surface2:#2e2a20;
   --border:#38332a; --border2:#4a4438; --text:#f0ebe3; --text2:#b8b0a4;
   --muted:#7a7268; --accent:#d4714e; --accent-light:rgba(212,113,78,0.15);
   --shadow:rgba(0,0,0,0.3); --shadow-lg:rgba(0,0,0,0.5);
-  --green:#4a6b5c; --green-bg:rgba(74,107,92,0.18);
-  --amber:#7a6b4a;
 }
 *{ margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; transition:background .3s,color .3s; }
@@ -30,7 +25,6 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
   background-image: radial-gradient(ellipse 70% 50% at 10% 0%,rgba(201,100,66,.07) 0%,transparent 55%), radial-gradient(ellipse 50% 60% at 90% 100%,rgba(92,122,107,.06) 0%,transparent 50%); }
 body.dark::before { background-image: radial-gradient(ellipse 70% 50% at 10% 0%,rgba(212,113,78,.09) 0%,transparent 55%), radial-gradient(ellipse 50% 60% at 90% 100%,rgba(92,122,107,.07) 0%,transparent 50%); }
 
-/* ── HEADER ── */
 header { position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:20px 44px; background:rgba(255,255,255,.8); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); transition:background .3s,border-color .3s; }
 body.dark header { background:rgba(24,22,15,.85); }
 .logo { font-family:'Lora',serif; font-size:20px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:9px; text-decoration:none; }
@@ -41,139 +35,127 @@ body.dark header { background:rgba(24,22,15,.85); }
 .dark-btn { width:36px; height:36px; border-radius:8px; border:1px solid var(--border2); background:var(--surface2); color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; transition:all .15s; }
 .dark-btn:hover { border-color:var(--accent); color:var(--accent); }
 
-/* ── MAIN ── */
-main { position:relative; z-index:1; padding:52px 44px 100px; max-width:900px; margin:0 auto; }
-
-.page-title { font-family:'Lora',serif; font-size:32px; font-weight:600; letter-spacing:-.5px; margin-bottom:6px; }
+main { position:relative; z-index:1; padding:52px 44px 100px; max-width:1200px; margin:0 auto; }
+.page-header { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:32px; flex-wrap:wrap; }
+.page-title { font-family:'Lora',serif; font-size:32px; font-weight:600; letter-spacing:-.5px; line-height:1.15; margin-bottom:6px; }
 .page-title em { color:var(--accent); font-style:italic; font-weight:400; }
-.page-sub { font-size:14px; color:var(--muted); margin-bottom:36px; }
+.page-sub { font-size:14px; color:var(--muted); }
+.page-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 
-/* ── SEARCH BAR ── */
-.search-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:0 1px 3px var(--shadow); margin-bottom:20px; }
-.input-row { display:flex; gap:10px; }
-.domain-input {
-  flex:1; background:var(--surface2); border:1px solid var(--border);
-  border-radius:10px; padding:13px 16px; font-size:15px;
-  font-family:var(--mono); color:var(--text); outline:none;
-  transition:border-color .18s, box-shadow .18s;
-}
-.domain-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(201,100,66,.1); }
-.domain-input::placeholder { color:var(--muted); font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; }
-.lookup-btn {
-  padding:13px 22px; background:var(--accent); color:#fff; border:none;
-  border-radius:10px; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px;
-  font-weight:600; cursor:pointer; transition:all .18s; white-space:nowrap;
-  box-shadow:0 1px 3px rgba(201,100,66,.3);
-}
-.lookup-btn:hover { background:#b85838; transform:translateY(-1px); }
-.lookup-btn:active { transform:translateY(0); }
-.lookup-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+.btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:8px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; font-weight:600; cursor:pointer; transition:all .18s; text-decoration:none; white-space:nowrap; }
+.btn-primary { background:var(--accent); color:#fff; box-shadow:0 1px 3px rgba(201,100,66,.3); }
+.btn-primary:hover { background:#b85838; transform:translateY(-1px); }
+.btn-outline { background:var(--surface); color:var(--text2); border:1px solid var(--border2); }
+.btn-outline:hover { background:var(--surface2); color:var(--text); border-color:var(--accent); }
+.btn-danger { background:#fff0ee; color:#c0392b; border:1px solid #f5c6c2; }
+.btn-danger:hover { background:#ffe4e0; }
+body.dark .btn-danger { background:rgba(192,57,43,.15); color:#e57373; border-color:rgba(192,57,43,.3); }
+body.dark .btn-danger:hover { background:rgba(192,57,43,.25); }
+.btn-sm { padding:5px 12px; font-size:12px; }
+.btn-xs { padding:3px 9px; font-size:11px; border-radius:6px; }
+.btn-icon { width:30px; height:30px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:7px; font-size:13px; flex-shrink:0; }
 
-/* ── RECORD TYPE BUTTONS ── */
-.record-types { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
-.type-btn {
-  padding:7px 16px; border-radius:8px; border:1px solid var(--border2);
-  background:var(--surface2); color:var(--text2);
-  font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600;
-  cursor:pointer; transition:all .15s;
-  display:flex; align-items:center; gap:6px;
-}
-.type-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
-.type-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); box-shadow:0 1px 4px rgba(201,100,66,.3); }
-.type-btn .type-dot { width:7px; height:7px; border-radius:50%; background:currentColor; opacity:.6; }
+.search-wrap { display:flex; align-items:center; background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:28px; transition:border-color .18s; max-width:420px; }
+.search-wrap:focus-within { border-color:var(--accent); }
+.search-icon { padding:0 10px 0 14px; color:var(--muted); display:flex; align-items:center; flex-shrink:0; }
+.search-input { flex:1; background:transparent; border:none; outline:none; padding:11px 0; color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; }
+.search-input::placeholder { color:var(--muted); }
+.search-clear { background:none; border:none; padding:0 12px; color:var(--muted); cursor:pointer; font-size:13px; display:none; transition:color .15s; }
+.search-clear:hover { color:var(--text); }
 
-/* ── RESULTS ── */
-.results-area { display:flex; flex-direction:column; gap:14px; }
+/* ── CLIENT CARDS ── */
+.clients-list { display:flex; flex-direction:column; gap:14px; }
+.client-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:0 1px 3px var(--shadow); transition:box-shadow .2s,border-color .2s; }
+.client-card:hover { box-shadow:0 4px 20px var(--shadow-lg); border-color:var(--border2); }
+.client-card-header { display:flex; align-items:center; gap:14px; padding:18px 22px; cursor:pointer; user-select:none; border-bottom:1px solid transparent; transition:border-color .2s; }
+.client-card.open .client-card-header { border-bottom-color:var(--border); }
+.client-avatar { width:44px; height:44px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-family:'Lora',serif; font-size:17px; font-weight:600; color:#fff; flex-shrink:0; }
+.client-info { flex:1; min-width:0; }
+.client-name-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.client-name { font-family:'Lora',serif; font-size:18px; font-weight:600; }
+.client-industry-tag { font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; background:var(--accent-light); color:var(--accent); }
+.client-meta { font-size:12.5px; color:var(--muted); margin-top:3px; }
+.client-card-btns { display:flex; gap:6px; flex-shrink:0; }
+.chevron { font-size:11px; color:var(--muted); transition:transform .22s; flex-shrink:0; margin-left:2px; }
+.client-card.open .chevron { transform:rotate(90deg); }
+.client-card-body { display:none; }
+.client-card.open .client-card-body { display:block; }
 
-.result-card {
-  background:var(--surface); border:1px solid var(--border);
-  border-radius:14px; overflow:hidden;
-  box-shadow:0 1px 3px var(--shadow);
-  animation:fadeUp .25s ease both;
-}
-@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+/* ── TABS ── */
+.tab-bar { display:flex; gap:2px; padding:12px 22px 0; border-bottom:1px solid var(--border); background:var(--surface2); }
+.tab-btn { padding:8px 16px; font-size:13px; font-weight:600; color:var(--muted); background:transparent; border:none; border-bottom:2px solid transparent; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; transition:color .15s; border-radius:6px 6px 0 0; margin-bottom:-1px; }
+.tab-btn:hover { color:var(--text2); }
+.tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); background:var(--surface); }
+.tab-panel { display:none; padding:22px; }
+.tab-panel.active { display:block; }
 
-.result-header {
-  display:flex; align-items:center; gap:12px;
-  padding:14px 18px; border-bottom:1px solid var(--border);
-  background:var(--surface2);
-}
-.result-type-badge {
-  font-family:var(--mono); font-size:12px; font-weight:500;
-  padding:3px 10px; border-radius:6px; background:var(--accent-light);
-  color:var(--accent); flex-shrink:0;
-}
-.result-domain { font-family:var(--mono); font-size:13px; color:var(--muted); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.result-count { font-size:12px; color:var(--muted); flex-shrink:0; }
+/* ── ADDRESSES ── */
+.addresses-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+.address-card { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px; }
+.address-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.address-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--accent); }
+.address-card-actions { display:flex; gap:4px; flex-shrink:0; }
+.address-text { font-size:13.5px; color:var(--text2); line-height:1.7; }
+.address-entry-notes { font-size:12px; color:var(--muted); margin-top:5px; font-style:italic; }
+.address-map-link { display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--accent); text-decoration:none; margin-top:9px; font-weight:600; transition:opacity .15s; }
+.address-map-link:hover { opacity:.75; }
+.add-dashed-btn { display:flex; align-items:center; justify-content:center; gap:8px; border:1.5px dashed var(--border2); border-radius:12px; padding:20px; cursor:pointer; color:var(--muted); font-size:13px; font-weight:500; transition:all .18s; background:transparent; width:100%; font-family:'Plus Jakarta Sans',sans-serif; }
+.add-dashed-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
 
-.result-body { padding:0; }
+/* ── CONTACTS ── */
+.contacts-grid { display:flex; flex-direction:column; gap:10px; }
+.contact-card { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px 18px; display:flex; align-items:flex-start; gap:14px; }
+.contact-avatar { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-family:'Lora',serif; font-size:14px; font-weight:600; color:#fff; flex-shrink:0; }
+.contact-body { flex:1; min-width:0; }
+.contact-name { font-size:14.5px; font-weight:600; color:var(--text); }
+.contact-role { font-size:12.5px; color:var(--muted); margin-top:1px; }
+.contact-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+.contact-chip { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:8px; background:var(--surface); border:1px solid var(--border); font-size:12.5px; color:var(--text2); text-decoration:none; transition:all .15s; }
+a.contact-chip:hover { border-color:var(--accent); color:var(--accent); }
+.chip-icon { opacity:.55; font-size:11px; }
+.contact-note { font-size:12px; color:var(--muted); margin-top:8px; font-style:italic; line-height:1.55; }
+.contact-actions { display:flex; gap:5px; flex-shrink:0; }
 
-.record-row {
-  display:grid; align-items:start; gap:12px;
-  padding:12px 18px; border-bottom:1px solid var(--border);
-  font-size:13px;
-  transition:background .12s;
-}
-.record-row:last-child { border-bottom:none; }
-.record-row:hover { background:var(--surface2); }
+/* ── NOTES ── */
+.notes-area { font-size:14px; color:var(--text2); line-height:1.75; white-space:pre-wrap; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:18px; min-height:80px; }
 
-/* column layouts per type */
-.record-row.type-a, .record-row.type-aaaa   { grid-template-columns:1fr 80px; }
-.record-row.type-mx                          { grid-template-columns:40px 1fr 80px; }
-.record-row.type-ns, .record-row.type-cname  { grid-template-columns:1fr 80px; }
-.record-row.type-txt                         { grid-template-columns:1fr; }
-.record-row.type-soa                         { grid-template-columns:1fr; }
-.record-row.type-srv                         { grid-template-columns:40px 1fr 80px; }
-.record-row.type-caa                         { grid-template-columns:40px 1fr 80px; }
+/* ── EMPTY ── */
+.empty { text-align:center; padding:80px 20px; color:var(--muted); }
+.empty-icon { font-size:48px; opacity:.3; margin-bottom:14px; }
+.empty-title { font-family:'Lora',serif; font-size:22px; color:var(--text2); margin-bottom:8px; }
+.empty-desc { font-size:14px; max-width:300px; margin:0 auto 24px; line-height:1.6; }
 
-.rec-value { font-family:var(--mono); color:var(--text); word-break:break-all; line-height:1.55; }
-.rec-ttl { font-family:var(--mono); font-size:11px; color:var(--muted); text-align:right; align-self:center; }
-.rec-prio { font-family:var(--mono); font-size:12px; color:var(--accent); font-weight:500; align-self:center; }
-.rec-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:3px; }
+/* ── MODAL ── */
+.modal-overlay { position:fixed; inset:0; background:rgba(26,23,20,.4); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; z-index:1000; opacity:0; pointer-events:none; transition:opacity .22s; padding:20px; }
+.modal-overlay.show { opacity:1; pointer-events:all; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:32px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; box-shadow:0 40px 80px rgba(60,40,20,.18); transform:scale(.96) translateY(8px); transition:transform .25s cubic-bezier(.34,1.56,.64,1); }
+.modal-overlay.show .modal { transform:scale(1) translateY(0); }
+.modal h3 { font-family:'Lora',serif; font-size:20px; font-weight:600; margin-bottom:22px; }
+.modal-field { margin-bottom:14px; }
+.modal-field label { display:block; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+.modal-field input, .modal-field textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:9px; color:var(--text); padding:10px 13px; font-size:14px; font-family:'Plus Jakarta Sans',sans-serif; outline:none; transition:border-color .18s; resize:vertical; }
+.modal-field input:focus, .modal-field textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(201,100,66,.1); }
+.modal-field input::placeholder, .modal-field textarea::placeholder { color:var(--border2); }
+.modal-field textarea { min-height:72px; }
+.modal-2col { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.modal-actions { display:flex; gap:10px; margin-top:24px; justify-content:flex-end; }
+.btn-cancel { padding:9px 17px; background:transparent; border:1px solid var(--border2); border-radius:8px; color:var(--text2); font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; cursor:pointer; transition:all .15s; }
+.btn-cancel:hover { background:var(--surface2); }
+.btn-confirm { padding:9px 17px; background:var(--accent); border:none; border-radius:8px; color:#fff; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all .18s; }
+.btn-confirm:hover { background:#b85838; }
+.color-options { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+.color-opt { width:28px; height:28px; border-radius:7px; cursor:pointer; border:2.5px solid transparent; transition:transform .15s,border-color .15s; }
+.color-opt:hover { transform:scale(1.12); }
+.color-opt.selected { border-color:var(--text); }
+.modal-divider { height:1px; background:var(--border); margin:18px 0; }
 
-/* copy button */
-.rec-copy { background:none; border:none; cursor:pointer; color:var(--muted); font-size:12px; padding:2px 6px; border-radius:4px; transition:all .12s; opacity:0; }
-.record-row:hover .rec-copy { opacity:1; }
-.rec-copy:hover { background:var(--border); color:var(--text); }
-.rec-mono { font-family:var(--mono); }
+.toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); color:#fff; padding:11px 22px; border-radius:10px; font-size:13.5px; font-family:'Plus Jakarta Sans',sans-serif; font-weight:500; z-index:9999; box-shadow:0 4px 20px rgba(60,40,20,.25); opacity:0; transition:opacity .25s,transform .25s; pointer-events:none; white-space:nowrap; }
 
-/* parsed tables for SPF/DMARC/DKIM */
-.parsed-table { display:flex; flex-direction:column; gap:3px; }
-.parsed-row { display:flex; align-items:baseline; gap:10px; padding:5px 8px; border-radius:6px; background:var(--surface2); }
-.parsed-key { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); min-width:120px; flex-shrink:0; }
-.parsed-val { font-size:13px; color:var(--text2); font-family:var(--mono); flex:1; word-break:break-all; }
-.parsed-ok   .parsed-key, .parsed-ok   .parsed-val { color:var(--green); }
-.parsed-ok   { background:var(--green-bg); }
-.parsed-warn .parsed-key, .parsed-warn .parsed-val { color:#b8860b; }
-.parsed-warn { background:rgba(184,134,11,.08); }
-body.dark .parsed-warn { background:rgba(184,134,11,.12); }
-.parsed-neutral .parsed-val { color:var(--amber); }
-
-/* states */
-.state-loading { display:flex; align-items:center; gap:12px; padding:24px 20px; color:var(--muted); font-size:14px; }
-.spinner { width:18px; height:18px; border:2px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
-@keyframes spin { to { transform:rotate(360deg); } }
-
-.state-empty { padding:28px 20px; text-align:center; color:var(--muted); font-size:13.5px; }
-.state-empty .empty-icon { font-size:28px; opacity:.4; margin-bottom:8px; }
-
-.state-error { padding:16px 18px; background:rgba(192,57,43,.07); border-left:3px solid #c0392b; margin:12px; border-radius:8px; font-size:13px; color:#c0392b; }
-
-/* history */
-.history-row { display:flex; align-items:center; gap:8px; margin-top:14px; flex-wrap:wrap; }
-.history-label { font-size:12px; color:var(--muted); font-weight:600; flex-shrink:0; }
-.history-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 6px 4px 11px; border-radius:20px; background:var(--surface2); border:1px solid var(--border); font-family:var(--mono); font-size:12px; color:var(--text2); cursor:pointer; transition:all .15s; }
-.history-chip:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
-.history-chip.pinned { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
-.chip-label { cursor:pointer; }
-.chip-pin { background:none; border:none; cursor:pointer; font-size:11px; padding:0 3px; opacity:.5; transition:opacity .15s; color:inherit; line-height:1; }
-.chip-pin:hover { opacity:1; }
-
-@media(max-width:600px) {
+@media(max-width:640px) {
   header { padding:16px 20px; }
   main { padding:32px 20px 80px; }
-  .input-row { flex-direction:column; }
-  .record-row.type-mx, .record-row.type-srv, .record-row.type-caa { grid-template-columns:1fr; }
+  .modal-2col { grid-template-columns:1fr; }
+  .tab-btn { padding:7px 11px; font-size:12px; }
 }
 
   /* ── NAV DROPDOWN ── */
@@ -219,7 +201,7 @@ body.dark .parsed-warn { background:rgba(184,134,11,.12); }
   </button>
   <div class="nav-dropdown" id="navDropdown">
     <div class="nav-section-label">Pages</div>
-    <a class="nav-item" href="index.html"><span class="nav-item-icon">🏠</span>home.</a><a class="nav-item" href="reports.html"><span class="nav-item-icon">📊</span>Reports</a><a class="nav-item" href="clients.html"><span class="nav-item-icon">🏢</span>Clients</a><a class="nav-item active" href="dns.html"><span class="nav-item-icon">🔍</span>DNS Lookup</a>
+    <a class="nav-item" href="index.html"><span class="nav-item-icon">🏠</span>home.</a><a class="nav-item" href="reports.html"><span class="nav-item-icon">📊</span>Reports</a><a class="nav-item active" href="clients.html"><span class="nav-item-icon">🏢</span>Clients</a><a class="nav-item" href="dns.html"><span class="nav-item-icon">🔍</span>DNS Lookup</a>
   </div>
 </div>
     <button class="dark-btn" id="darkBtn" onclick="toggleDark()">🌙</button>
@@ -227,497 +209,516 @@ body.dark .parsed-warn { background:rgba(184,134,11,.12); }
 </header>
 
 <main>
-  <div class="page-title">DNS <em>Lookup</em></div>
-  <div class="page-sub">Query DNS records for any domain using Cloudflare's public DNS resolver.</div>
-
-  <div class="search-card">
-    <div class="input-row">
-      <input class="domain-input" id="domainInput" type="text" placeholder="Enter a domain — e.g. example.com"
-        onkeydown="if(event.key==='Enter') lookupActive()"
-        oninput="onDomainInput(this.value)">
-      <button class="lookup-btn" id="lookupBtn" onclick="lookupActive()" disabled>Lookup</button>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Client <em>Information</em></div>
+      <div class="page-sub" id="pageSub">—</div>
     </div>
-
-    <div class="record-types" id="recordTypes">
-      <!-- rendered by JS -->
-    </div>
-
-    <div class="history-row" id="historyRow" style="display:none">
-      <span class="history-label">Recent:</span>
-      <div id="historyChips"></div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="exportData()">↓ Export</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()">↑ Import</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="btn btn-primary" onclick="openAddClient()">+ Add Client</button>
     </div>
   </div>
 
-  <div class="results-area" id="resultsArea"></div>
+  <div class="search-wrap">
+    <span class="search-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+    <input class="search-input" id="searchInput" type="text" placeholder="Search clients, contacts, addresses…" oninput="onSearch(this.value)" autocomplete="off">
+    <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+  </div>
+
+  <div class="clients-list" id="clientsList"></div>
 </main>
 
+<!-- CLIENT MODAL -->
+<div class="modal-overlay" id="clientModal">
+  <div class="modal">
+    <h3 id="clientModalTitle">New Client</h3>
+    <div class="modal-2col">
+      <div class="modal-field"><label>Company Name</label><input type="text" id="mCName" placeholder="Acme Corporation"></div>
+      <div class="modal-field"><label>Industry / Type</label><input type="text" id="mCIndustry" placeholder="e.g. IT, Finance…"></div>
+    </div>
+    <div class="modal-field"><label>Website</label><input type="url" id="mCWebsite" placeholder="https://…"></div>
+    <div class="modal-field"><label>Notes</label><textarea id="mCNotes" placeholder="General notes about this client…"></textarea></div>
+    <div class="modal-field"><label>Colour</label><div class="color-options" id="clientColorOpts"></div></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('clientModal')">Cancel</button>
+      <button class="btn-confirm" id="clientModalBtn" onclick="saveClient()">Add Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADDRESS MODAL -->
+<div class="modal-overlay" id="addressModal">
+  <div class="modal">
+    <h3 id="addressModalTitle">Add Address</h3>
+    <div class="modal-field"><label>Label</label><input type="text" id="mALabel" placeholder="e.g. Head Office, Warehouse, Site B…"></div>
+    <div class="modal-field"><label>Street</label><input type="text" id="mAStreet" placeholder="123 Example Street"></div>
+    <div class="modal-2col">
+      <div class="modal-field"><label>Suburb / City</label><input type="text" id="mACity" placeholder="Sydney"></div>
+      <div class="modal-field"><label>State</label><input type="text" id="mAState" placeholder="NSW"></div>
+    </div>
+    <div class="modal-2col">
+      <div class="modal-field"><label>Postcode</label><input type="text" id="mAPostcode" placeholder="2000"></div>
+      <div class="modal-field"><label>Country</label><input type="text" id="mACountry" placeholder="Australia"></div>
+    </div>
+    <div class="modal-field"><label>Entry Notes</label><input type="text" id="mANotes" placeholder="e.g. Level 4, buzz 42 on arrival…"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('addressModal')">Cancel</button>
+      <button class="btn-confirm" id="addressModalBtn" onclick="saveAddress()">Add Address</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT MODAL -->
+<div class="modal-overlay" id="contactModal">
+  <div class="modal">
+    <h3 id="contactModalTitle">New Contact</h3>
+    <div class="modal-2col">
+      <div class="modal-field"><label>Full Name</label><input type="text" id="mCtName" placeholder="Jane Smith"></div>
+      <div class="modal-field"><label>Job Title / Role</label><input type="text" id="mCtRole" placeholder="IT Manager"></div>
+    </div>
+    <div class="modal-2col">
+      <div class="modal-field"><label>Email</label><input type="email" id="mCtEmail" placeholder="jane@example.com"></div>
+      <div class="modal-field"><label>Department</label><input type="text" id="mCtDept" placeholder="e.g. Finance, IT…"></div>
+    </div>
+    <div class="modal-2col">
+      <div class="modal-field"><label>Phone (office)</label><input type="tel" id="mCtPhone" placeholder="+61 2 xxxx xxxx"></div>
+      <div class="modal-field"><label>Mobile</label><input type="tel" id="mCtMobile" placeholder="+61 4xx xxx xxx"></div>
+    </div>
+    <div class="modal-field"><label>Notes</label><textarea id="mCtNotes" placeholder="Any notes about this contact…" style="min-height:60px"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('contactModal')">Cancel</button>
+      <button class="btn-confirm" id="contactModalBtn" onclick="saveContact()">Add Contact</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-// ── CONFIG ──
-const DNS_API = 'https://cloudflare-dns.com/dns-query';
+const COLORS = ['#c96442','#9b6b4a','#5c7a6b','#7a6b9b','#6b8a9b','#9b8a5c','#7a4a6b','#4a7a5c','#bf6e42','#6b9b7a'];
+const KEY = 'ci_v2';
 
-const RECORD_TYPES = [
-  { type:'A',     label:'A',     desc:'IPv4 address',         icon:'🔵' },
-  { type:'AAAA',  label:'AAAA',  desc:'IPv6 address',         icon:'🟣' },
-  { type:'MX',    label:'MX',    desc:'Mail servers',         icon:'📧' },
-  { type:'NS',    label:'NS',    desc:'Nameservers',          icon:'🌐' },
-  { type:'CNAME', label:'CNAME', desc:'Canonical name alias', icon:'🔀' },
-  { type:'TXT',   label:'TXT',   desc:'All text records',     icon:'📄' },
-  { type:'SOA',   label:'SOA',   desc:'Start of authority',   icon:'🏛' },
-  { type:'SRV',   label:'SRV',   desc:'Service locator',      icon:'⚙️' },
-  { type:'CAA',   label:'CAA',   desc:'Cert authority',       icon:'🔒' },
-  { type:'SPF',   label:'SPF',   desc:'Sender Policy Framework — who can send email for this domain', icon:'✉️', pseudo:true },
-  { type:'DMARC', label:'DMARC', desc:'Domain-based Message Authentication — email policy', icon:'🛡', pseudo:true },
-  { type:'DKIM',  label:'DKIM',  desc:'DomainKeys Identified Mail — requires a selector', icon:'🔑', pseudo:true },
-];
+let data = [];
+try { data = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) {}
 
-// Active record types — none selected by default
-let activeTypes = new Set([]);
-let history     = JSON.parse(localStorage.getItem('dns_history') || '[]').slice(0, 3);
-let pinned      = JSON.parse(localStorage.getItem('dns_pinned')  || '[]');
-let lastDomain  = '';
+let editingClientId  = null;
+let editingAddressId = null;
+let addrForClient    = null;
+let editingContactId = null;
+let ctForClient      = null;
+let selectedColor    = COLORS[0];
+let searchQuery      = '';
 
-// ── INIT ──
-function init() {
-  renderTypeButtons();
-  renderHistory();
-  applyDark();
+function uid()  { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+
+function fmtAddr(a) {
+  return [a.street, a.city, a.state, a.postcode, a.country].filter(Boolean).join(', ');
 }
 
-// ── TYPE BUTTONS ──
-function renderTypeButtons() {
-  const wrap = document.getElementById('recordTypes');
-  wrap.innerHTML = RECORD_TYPES.map(rt => `
-    <button class="type-btn${activeTypes.has(rt.type)?' active':''}"
-      onclick="toggleType('${rt.type}')"
-      title="${rt.desc}">
-      <span>${rt.icon}</span> ${rt.label}
-    </button>`).join('');
+/* ── TABS ── */
+function switchTab(clientId, tab) {
+  const card = document.getElementById('card_' + clientId);
+  if (!card) return;
+  card.querySelectorAll('.tab-btn').forEach(b   => b.classList.toggle('active',   b.dataset.tab   === tab));
+  card.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === tab));
+  const c = data.find(x => x.id === clientId);
+  if (c) { c._tab = tab; save(); }
 }
 
-function toggleType(type) {
-  if (activeTypes.has(type)) {
-    activeTypes.delete(type);
-  } else {
-    activeTypes.add(type);
+/* ── RENDER ── */
+function render() {
+  const list = document.getElementById('clientsList');
+  const q    = searchQuery.toLowerCase();
+
+  let clients = data;
+  if (q) {
+    clients = data.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      (c.industry||'').toLowerCase().includes(q) ||
+      (c.notes||'').toLowerCase().includes(q) ||
+      (c.addresses||[]).some(a => fmtAddr(a).toLowerCase().includes(q) || (a.label||'').toLowerCase().includes(q) || (a.notes||'').toLowerCase().includes(q)) ||
+      (c.contacts||[]).some(ct =>
+        ct.name.toLowerCase().includes(q) ||
+        (ct.role||'').toLowerCase().includes(q) ||
+        (ct.email||'').toLowerCase().includes(q) ||
+        (ct.phone||'').toLowerCase().includes(q) ||
+        (ct.mobile||'').toLowerCase().includes(q) ||
+        (ct.dept||'').toLowerCase().includes(q) ||
+        (ct.notes||'').toLowerCase().includes(q)
+      )
+    );
   }
-  renderTypeButtons();
-  if (lastDomain) runLookup(lastDomain);
-}
 
-// ── INPUT ──
-function onDomainInput(val) {
-  const clean = val.trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'');
-  document.getElementById('lookupBtn').disabled = !clean;
-}
+  document.getElementById('pageSub').textContent = data.length
+    ? `${data.length} client${data.length!==1?'s':''}`
+    : 'No clients yet';
+  document.getElementById('searchClear').style.display = q ? 'block' : 'none';
 
-function lookupActive() {
-  const raw   = document.getElementById('domainInput').value.trim();
-  const domain = raw.replace(/^https?:\/\//,'').replace(/\/.*$/,'').toLowerCase();
-  if (!domain) return;
-  document.getElementById('domainInput').value = domain;
-  runLookup(domain);
-}
+  list.innerHTML = '';
 
-// ── LOOKUP ──
-// Common DKIM selectors to probe automatically
-const DKIM_SELECTORS = [
-  'google','default','selector1','selector2','dkim','mail','k1','k2',
-  'smtp','email','mimecast','mailjet','sendgrid','amazonses','mandrill',
-  'protonmail','zoho','outlook','s1','s2','key1','key2','dkim1','dkim2',
-  'sig1','20161025','20210112','20230601'
-];
-
-function resolveQuery(type, domain) {
-  switch(type) {
-    case 'SPF':   return [{ queryName: domain,             queryType: 'TXT', label: 'SPF'   }];
-    case 'DMARC': return [{ queryName: `_dmarc.${domain}`, queryType: 'TXT', label: 'DMARC' }];
-    case 'DKIM':  return DKIM_SELECTORS.map(sel => ({ queryName: `${sel}._domainkey.${domain}`, queryType: 'TXT', label: sel, selector: sel }));
-    default:      return [{ queryName: domain,             queryType: type,  label: type    }];
-  }
-}
-
-async function runLookup(domain) {
-  lastDomain = domain;
-  addHistory(domain);
-
-  const resultsArea = document.getElementById('resultsArea');
-  resultsArea.innerHTML = '';
-
-  const types = [...activeTypes];
-  if (!types.length) {
-    resultsArea.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px">Select one or more record types above to look up.</div>';
+  if (!clients.length) {
+    list.innerHTML = q
+      ? `<div class="empty"><div class="empty-icon">🔎</div><div class="empty-title">No results</div><div class="empty-desc">Nothing matched "<strong>${esc(searchQuery)}</strong>"</div></div>`
+      : `<div class="empty"><div class="empty-icon">🏢</div><div class="empty-title">No clients yet</div><div class="empty-desc">Add your first client to get started.</div><button class="btn btn-primary" onclick="openAddClient()">+ Add Client</button></div>`;
     return;
   }
 
-  // Create one result card per type
-  const cards = {};
-  types.forEach((type, i) => {
+  clients.forEach(client => {
+    const addresses = client.addresses || [];
+    const contacts  = client.contacts  || [];
+    const isOpen    = !!client._open;
+    const activeTab = client._tab || 'contacts';
+
+    // Meta summary
+    const meta = [];
+    if (client.website) meta.push(client.website.replace(/^https?:\/\//,''));
+    if (addresses.length) meta.push(`${addresses.length} address${addresses.length!==1?'es':''}`);
+    if (contacts.length)  meta.push(`${contacts.length} contact${contacts.length!==1?'s':''}`);
+
+    // --- CONTACTS TAB ---
+    const ctCards = contacts.map(ct => {
+      const initials = ct.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const chips = [];
+      if (ct.email)  chips.push(`<a class="contact-chip" href="mailto:${esc(ct.email)}"><span class="chip-icon">✉</span>${esc(ct.email)}</a>`);
+      if (ct.phone)  chips.push(`<a class="contact-chip" href="tel:${esc(ct.phone)}"><span class="chip-icon">📞</span>${esc(ct.phone)}</a>`);
+      if (ct.mobile) chips.push(`<a class="contact-chip" href="tel:${esc(ct.mobile)}"><span class="chip-icon">📱</span>${esc(ct.mobile)}</a>`);
+      if (ct.dept)   chips.push(`<span class="contact-chip"><span class="chip-icon">🏷</span>${esc(ct.dept)}</span>`);
+      return `
+        <div class="contact-card">
+          <div class="contact-avatar" style="background:${client.color}">${initials}</div>
+          <div class="contact-body">
+            <div class="contact-name">${esc(ct.name)}</div>
+            ${ct.role ? `<div class="contact-role">${esc(ct.role)}</div>` : ''}
+            ${chips.length ? `<div class="contact-chips">${chips.join('')}</div>` : ''}
+            ${ct.notes ? `<div class="contact-note">${esc(ct.notes)}</div>` : ''}
+          </div>
+          <div class="contact-actions">
+            <button class="btn btn-outline btn-icon btn-sm" onclick="openEditContact('${client.id}','${ct.id}')" title="Edit">✏</button>
+            <button class="btn btn-danger btn-icon btn-sm" onclick="deleteContact('${client.id}','${ct.id}')" title="Delete">✕</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    // --- ADDRESSES TAB ---
+    const addrCards = addresses.map(a => `
+      <div class="address-card">
+        <div class="address-card-header">
+          <div class="address-label">${esc(a.label||'Address')}</div>
+          <div class="address-card-actions">
+            <button class="btn btn-outline btn-xs" onclick="openEditAddress('${client.id}','${a.id}')">✏</button>
+            <button class="btn btn-danger btn-xs" onclick="deleteAddress('${client.id}','${a.id}')">✕</button>
+          </div>
+        </div>
+        <div class="address-text">${esc(fmtAddr(a))}</div>
+        ${a.notes ? `<div class="address-entry-notes">${esc(a.notes)}</div>` : ''}
+        <a class="address-map-link" href="https://maps.google.com?q=${encodeURIComponent(fmtAddr(a))}" target="_blank" rel="noopener">🗺 Open in Maps</a>
+      </div>`).join('');
+
     const card = document.createElement('div');
-    card.className = 'result-card';
-    card.style.animationDelay = `${i * 0.04}s`;
-    card.id = `result_${type}`;
-    const displayLabel = type === 'DKIM' ? 'DKIM' : resolveQuery(type, domain)[0].label;
-    const displayDomain = type === 'DKIM' ? `*._domainkey.${domain}` : resolveQuery(type, domain)[0].queryName;
+    card.className = 'client-card' + (isOpen ? ' open' : '');
+    card.id = 'card_' + client.id;
+
     card.innerHTML = `
-      <div class="result-header">
-        <span class="result-type-badge">${displayLabel}</span>
-        <span class="result-domain">${displayDomain}</span>
+      <div class="client-card-header" onclick="toggleCard('${client.id}')">
+        <div class="client-avatar" style="background:${client.color}">${client.name[0].toUpperCase()}</div>
+        <div class="client-info">
+          <div class="client-name-row">
+            <span class="client-name">${esc(client.name)}</span>
+            ${client.industry ? `<span class="client-industry-tag">${esc(client.industry)}</span>` : ''}
+          </div>
+          ${meta.length ? `<div class="client-meta">${meta.join(' · ')}</div>` : ''}
+        </div>
+        <div class="client-card-btns" onclick="event.stopPropagation()">
+          <button class="btn btn-outline btn-icon btn-sm" onclick="openEditClient('${client.id}')">✏</button>
+          <button class="btn btn-danger btn-icon btn-sm" onclick="deleteClient('${client.id}')">✕</button>
+        </div>
+        <span class="chevron">▶</span>
       </div>
-      <div class="result-body">
-        <div class="state-loading"><div class="spinner"></div> ${type === 'DKIM' ? `Probing ${DKIM_SELECTORS.length} common selectors…` : 'Querying…'}</div>
-      </div>`;
-    resultsArea.appendChild(card);
-    cards[type] = card;
-  });
+      <div class="client-card-body">
+        <div class="tab-bar">
+          <button class="tab-btn${activeTab==='contacts'?' active':''}" data-tab="contacts" onclick="switchTab('${client.id}','contacts')">
+            Contacts${contacts.length ? ` <span style="opacity:.55;font-size:11px">(${contacts.length})</span>` : ''}
+          </button>
+          <button class="tab-btn${activeTab==='addresses'?' active':''}" data-tab="addresses" onclick="switchTab('${client.id}','addresses')">
+            Addresses${addresses.length ? ` <span style="opacity:.55;font-size:11px">(${addresses.length})</span>` : ''}
+          </button>
+          <button class="tab-btn${activeTab==='notes'?' active':''}" data-tab="notes" onclick="switchTab('${client.id}','notes')">
+            Notes
+          </button>
+        </div>
 
-  await Promise.all(types.map(async type => {
-    const card = cards[type];
+        <div class="tab-panel${activeTab==='contacts'?' active':''}" data-panel="contacts">
+          <div class="contacts-grid">
+            ${ctCards}
+            <button class="add-dashed-btn" onclick="openAddContact('${client.id}')">+ Add Contact</button>
+          </div>
+        </div>
 
-    if (type === 'DKIM') {
-      // Probe all selectors in parallel, collect hits
-      const queries = resolveQuery('DKIM', domain);
-      const results = await Promise.all(queries.map(async q => {
-        try {
-          const res = await fetch(`${DNS_API}?name=${encodeURIComponent(q.queryName)}&type=TXT`, {
-            headers: { 'Accept': 'application/dns-json' }
-          });
-          if (!res.ok) return null;
-          const json = await res.json();
-          const answers = (json.Answer || []).filter(a => String(a.data).includes('v=DKIM1') || String(a.data).includes('k='));
-          if (!answers.length) return null;
-          return { selector: q.selector, answers };
-        } catch { return null; }
-      }));
+        <div class="tab-panel${activeTab==='addresses'?' active':''}" data-panel="addresses">
+          <div class="addresses-grid">
+            ${addrCards}
+            <button class="add-dashed-btn" onclick="openAddAddress('${client.id}')">+ Add Address</button>
+          </div>
+        </div>
 
-      const hits = results.filter(Boolean);
-      const body = card.querySelector('.result-body');
-      const header = card.querySelector('.result-header');
-      const countEl = document.createElement('span');
-      countEl.className = 'result-count';
-      countEl.textContent = hits.length ? `${hits.length} selector${hits.length!==1?'s':''} found` : 'No selectors found';
-      header.appendChild(countEl);
-
-      if (!hits.length) {
-        body.innerHTML = `<div class="state-empty"><div class="empty-icon">∅</div>No DKIM records found — tried ${DKIM_SELECTORS.length} common selectors</div>`;
-        return;
-      }
-
-      body.innerHTML = hits.map(hit => {
-        return hit.answers.map(rec => {
-          const raw = String(rec.data).replace(/^"|"$/g,'').replace(/" "/g,'');
-          const parts = raw.split(/\s*;\s*/);
-          const tags = parts.filter(Boolean).map(p => {
-            const [k, ...rest] = p.split('=');
-            const v = rest.join('=');
-            const KEY = (k||'').trim().toLowerCase();
-            const VAL = (v||'').trim();
-            const labels = { 'v':['Version',VAL], 'k':['Key type',VAL], 'p':['Public key', VAL.length>40?VAL.slice(0,40)+'…':VAL], 'h':['Hash algo',VAL], 's':['Service',VAL], 't':['Flags',VAL], 'n':['Notes',VAL] };
-            const [label, display] = labels[KEY] || [KEY, VAL];
-            return `<div class="parsed-row"><span class="parsed-key">${esc(label)}</span><span class="parsed-val rec-mono" style="word-break:break-all">${esc(display)}</span></div>`;
-          }).join('');
-          return `<div class="record-row type-txt" style="flex-direction:column;gap:0">
-            <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px">
-              <span style="font-family:var(--mono);font-size:12px;font-weight:600;background:var(--accent-light);color:var(--accent);padding:2px 9px;border-radius:6px">${esc(hit.selector)}</span>
-              <span style="font-size:11px;color:var(--muted)">${esc(hit.selector)}._domainkey.${esc(domain)}</span>
-              <button class="rec-copy" onclick="copyVal('${esc(raw)}')" title="Copy raw" style="opacity:1">⎘</button>
-            </div>
-            <div class="parsed-table">${tags}</div>
-          </div>`;
-        }).join('');
-      }).join('');
-      return;
-    }
-
-    // Standard types
-    const queries = resolveQuery(type, domain);
-    const { queryName, queryType, label } = queries[0];
-    try {
-      const res  = await fetch(`${DNS_API}?name=${encodeURIComponent(queryName)}&type=${queryType}`, {
-        headers: { 'Accept': 'application/dns-json' }
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      renderResult(card, type, queryName, json);
-    } catch(err) {
-      card.querySelector('.result-body').innerHTML =
-        `<div class="state-error">⚠ Could not fetch ${label} records — ${err.message}</div>`;
-    }
-  }));
-}
-
-// ── RENDER RESULT ──
-function renderResult(card, type, queryName, json) {
-  const answers = json.Answer || [];
-  const body    = card.querySelector('.result-body');
-  const header  = card.querySelector('.result-header');
-
-  const countEl = header.querySelector('.result-count') || document.createElement('span');
-  countEl.className = 'result-count';
-  countEl.textContent = answers.length ? `${answers.length} record${answers.length!==1?'s':''}` : 'No records';
-  if (!header.querySelector('.result-count')) header.appendChild(countEl);
-
-  if (!answers.length) {
-    const noRecMsg = type === 'DMARC' ? `No DMARC record found at ${queryName}` :
-                     type === 'DKIM'  ? `No DKIM record found — try a different selector` :
-                     type === 'SPF'   ? `No SPF record found for this domain` :
-                     `No ${type} records found for ${queryName}`;
-    body.innerHTML = `<div class="state-empty"><div class="empty-icon">∅</div>${noRecMsg}</div>`;
-    return;
-  }
-
-  // For pseudo-types, filter to only relevant records
-  let filtered = answers;
-  if (type === 'SPF') {
-    filtered = answers.filter(r => String(r.data).includes('v=spf1'));
-    if (!filtered.length) {
-      body.innerHTML = `<div class="state-empty"><div class="empty-icon">∅</div>No SPF record found (no TXT record starting with v=spf1)</div>`;
-      return;
-    }
-  }
-  if (type === 'DMARC' || type === 'DKIM') {
-    filtered = answers.filter(r => String(r.data).length > 0);
-  }
-
-  body.innerHTML = filtered.map(rec => renderRecord(type, rec)).join('');
-}
-
-function fmtTTL(ttl) {
-  if (!ttl) return '';
-  if (ttl < 60)   return `${ttl}s`;
-  if (ttl < 3600) return `${Math.round(ttl/60)}m`;
-  return `${Math.round(ttl/3600)}h`;
-}
-
-function copyVal(val) {
-  navigator.clipboard.writeText(val).catch(() => {});
-}
-
-function renderRecord(type, rec) {
-  const data = String(rec.data || '').trim();
-  const ttl  = fmtTTL(rec.TTL);
-  const cls  = `record-row type-${type.toLowerCase()}`;
-
-  switch(type) {
-    case 'A':
-    case 'AAAA':
-      return `<div class="${cls}">
-        <span class="rec-value">${esc(data)} <button class="rec-copy" onclick="copyVal('${esc(data)}')" title="Copy">⎘</button></span>
-        <span class="rec-ttl">${ttl}</span>
-      </div>`;
-
-    case 'MX': {
-      const parts = data.split(' ');
-      const prio  = parts[0] || '';
-      const host  = parts.slice(1).join(' ') || data;
-      return `<div class="${cls}">
-        <span class="rec-prio">${esc(prio)}</span>
-        <span class="rec-value">${esc(host)} <button class="rec-copy" onclick="copyVal('${esc(host)}')" title="Copy">⎘</button></span>
-        <span class="rec-ttl">${ttl}</span>
-      </div>`;
-    }
-
-    case 'NS':
-    case 'CNAME':
-      return `<div class="${cls}">
-        <span class="rec-value">${esc(data)} <button class="rec-copy" onclick="copyVal('${esc(data)}')" title="Copy">⎘</button></span>
-        <span class="rec-ttl">${ttl}</span>
-      </div>`;
-
-    case 'TXT': {
-      const clean = data.replace(/^"|"$/g,'').replace(/" "/g,'');
-      return `<div class="${cls}">
-        <div>
-          <div class="rec-value">${esc(clean)} <button class="rec-copy" onclick="copyVal('${esc(clean)}')" title="Copy">⎘</button></div>
-          <div class="rec-ttl" style="text-align:left;margin-top:4px">${ttl}</div>
+        <div class="tab-panel${activeTab==='notes'?' active':''}" data-panel="notes">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+            <button class="btn btn-outline btn-sm" onclick="openEditClient('${client.id}')">✏ Edit Notes</button>
+          </div>
+          <div class="notes-area">${client.notes ? esc(client.notes) : '<span style="color:var(--muted);font-style:italic">No notes added yet.</span>'}</div>
         </div>
       </div>`;
-    }
 
-    case 'SOA': {
-      const parts   = data.split(' ');
-      const fields  = ['Primary NS','Responsible','Serial','Refresh','Retry','Expire','Min TTL'];
-      const rows    = parts.map((v,i) => `<div style="display:flex;gap:12px;padding:4px 0;border-bottom:1px solid var(--border)"><span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;min-width:110px">${fields[i]||'—'}</span><span class="rec-value">${esc(v)}</span></div>`).join('');
-      return `<div class="${cls}"><div style="width:100%">${rows}</div></div>`;
-    }
-
-    case 'SRV': {
-      const parts = data.split(' ');
-      const prio  = parts[0] || '';
-      const rest  = parts.slice(1).join(' ');
-      return `<div class="${cls}">
-        <span class="rec-prio">${esc(prio)}</span>
-        <span class="rec-value">${esc(rest)} <button class="rec-copy" onclick="copyVal('${esc(rest)}')" title="Copy">⎘</button></span>
-        <span class="rec-ttl">${ttl}</span>
-      </div>`;
-    }
-
-    case 'CAA': {
-      const parts = data.split(' ');
-      const flag  = parts[0] || '';
-      const rest  = parts.slice(1).join(' ');
-      return `<div class="${cls}">
-        <span class="rec-prio">${esc(flag)}</span>
-        <span class="rec-value">${esc(rest)} <button class="rec-copy" onclick="copyVal('${esc(rest)}')" title="Copy">⎘</button></span>
-        <span class="rec-ttl">${ttl}</span>
-      </div>`;
-    }
-
-    default: {
-      // ── SPF ──
-      if (type === 'SPF') {
-        const raw   = data.replace(/^"|"$/g,'').replace(/" "/g,'');
-        const parts = raw.split(/\s+/);
-        const tags  = parts.map(p => {
-          if (p === 'v=spf1') return `<div class="parsed-row"><span class="parsed-key">version</span><span class="parsed-val">SPF1</span></div>`;
-          if (p === '+all'||p==='all')  return `<div class="parsed-row parsed-warn"><span class="parsed-key">all</span><span class="parsed-val">⚠ Allow all — very permissive</span></div>`;
-          if (p === '-all')  return `<div class="parsed-row parsed-ok"><span class="parsed-key">all</span><span class="parsed-val">✓ Hard fail — strict</span></div>`;
-          if (p === '~all')  return `<div class="parsed-row parsed-neutral"><span class="parsed-key">all</span><span class="parsed-val">~ Soft fail</span></div>`;
-          if (p === '?all')  return `<div class="parsed-row parsed-neutral"><span class="parsed-key">all</span><span class="parsed-val">? Neutral</span></div>`;
-          if (p.startsWith('include:')) return `<div class="parsed-row"><span class="parsed-key">include</span><span class="parsed-val rec-mono">${esc(p.slice(8))}</span></div>`;
-          if (p.startsWith('ip4:'))    return `<div class="parsed-row"><span class="parsed-key">ip4</span><span class="parsed-val rec-mono">${esc(p.slice(4))}</span></div>`;
-          if (p.startsWith('ip6:'))    return `<div class="parsed-row"><span class="parsed-key">ip6</span><span class="parsed-val rec-mono">${esc(p.slice(4))}</span></div>`;
-          if (p.startsWith('a:'))      return `<div class="parsed-row"><span class="parsed-key">a</span><span class="parsed-val rec-mono">${esc(p.slice(2))}</span></div>`;
-          if (p === 'a')               return `<div class="parsed-row"><span class="parsed-key">a</span><span class="parsed-val">domain A record</span></div>`;
-          if (p.startsWith('mx:'))     return `<div class="parsed-row"><span class="parsed-key">mx</span><span class="parsed-val rec-mono">${esc(p.slice(3))}</span></div>`;
-          if (p === 'mx')              return `<div class="parsed-row"><span class="parsed-key">mx</span><span class="parsed-val">domain MX records</span></div>`;
-          if (p.startsWith('redirect=')) return `<div class="parsed-row"><span class="parsed-key">redirect</span><span class="parsed-val rec-mono">${esc(p.slice(9))}</span></div>`;
-          return `<div class="parsed-row"><span class="parsed-key">other</span><span class="parsed-val rec-mono">${esc(p)}</span></div>`;
-        }).join('');
-        return `<div class="record-row type-txt" style="flex-direction:column;gap:0">
-          <div style="margin-bottom:10px">
-            <div class="rec-label" style="margin-bottom:6px">Raw</div>
-            <div class="rec-value rec-mono" style="word-break:break-all">${esc(raw)} <button class="rec-copy" onclick="copyVal('${esc(raw)}')" title="Copy">⎘</button></div>
-          </div>
-          <div class="rec-label" style="margin-bottom:6px">Parsed</div>
-          <div class="parsed-table">${tags}</div>
-        </div>`;
-      }
-
-      // ── DMARC ──
-      if (type === 'DMARC') {
-        const raw   = data.replace(/^"|"$/g,'').replace(/" "/g,'');
-        const parts = raw.split(/\s*;\s*/);
-        const tags  = parts.filter(Boolean).map(p => {
-          const [k, ...rest] = p.split('=');
-          const v = rest.join('=');
-          const KEY = (k||'').trim().toLowerCase();
-          const VAL = (v||'').trim();
-          const labels = {
-            'v':       ['Version',           VAL],
-            'p':       ['Policy',            VAL === 'none' ? '⚠ none — monitoring only' : VAL === 'quarantine' ? '~ quarantine' : VAL === 'reject' ? '✓ reject — strict' : VAL],
-            'sp':      ['Subdomain policy',  VAL],
-            'rua':     ['Aggregate reports', VAL],
-            'ruf':     ['Forensic reports',  VAL],
-            'pct':     ['Percentage',        `${VAL}% of messages`],
-            'adkim':   ['DKIM alignment',    VAL === 's' ? 'strict' : 'relaxed'],
-            'aspf':    ['SPF alignment',     VAL === 's' ? 'strict' : 'relaxed'],
-            'fo':      ['Failure options',   VAL],
-            'rf':      ['Report format',     VAL],
-            'ri':      ['Report interval',   `${VAL}s`],
-          };
-          const [label, display] = labels[KEY] || [KEY, VAL];
-          const cls = display.startsWith('⚠') ? ' parsed-warn' : display.startsWith('✓') ? ' parsed-ok' : display.startsWith('~') ? ' parsed-neutral' : '';
-          return `<div class="parsed-row${cls}"><span class="parsed-key">${esc(label)}</span><span class="parsed-val">${esc(display)}</span></div>`;
-        }).join('');
-        return `<div class="record-row type-txt" style="flex-direction:column;gap:0">
-          <div style="margin-bottom:10px">
-            <div class="rec-label" style="margin-bottom:6px">Raw</div>
-            <div class="rec-value rec-mono" style="word-break:break-all">${esc(raw)} <button class="rec-copy" onclick="copyVal('${esc(raw)}')" title="Copy">⎘</button></div>
-          </div>
-          <div class="rec-label" style="margin-bottom:6px">Parsed</div>
-          <div class="parsed-table">${tags}</div>
-        </div>`;
-      }
-
-      // ── DKIM ──
-      if (type === 'DKIM') {
-        const raw   = data.replace(/^"|"$/g,'').replace(/" "/g,'');
-        const parts = raw.split(/\s*;\s*/);
-        const tags  = parts.filter(Boolean).map(p => {
-          const [k, ...rest] = p.split('=');
-          const v = rest.join('=');
-          const KEY = (k||'').trim().toLowerCase();
-          const VAL = (v||'').trim();
-          const labels = {
-            'v':  ['Version',    VAL],
-            'k':  ['Key type',   VAL],
-            'p':  ['Public key', VAL.length > 40 ? VAL.slice(0,40)+'…' : VAL],
-            'h':  ['Hash algo',  VAL],
-            's':  ['Service',    VAL],
-            't':  ['Flags',      VAL],
-            'n':  ['Notes',      VAL],
-          };
-          const [label, display] = labels[KEY] || [KEY, VAL];
-          return `<div class="parsed-row"><span class="parsed-key">${esc(label)}</span><span class="parsed-val rec-mono" style="word-break:break-all">${esc(display)}</span></div>`;
-        }).join('');
-        return `<div class="record-row type-txt" style="flex-direction:column;gap:0">
-          <div style="margin-bottom:10px">
-            <div class="rec-label" style="margin-bottom:6px">Raw</div>
-            <div class="rec-value rec-mono" style="word-break:break-all;font-size:12px">${esc(raw)} <button class="rec-copy" onclick="copyVal('${esc(raw)}')" title="Copy">⎘</button></div>
-          </div>
-          <div class="rec-label" style="margin-bottom:6px">Parsed</div>
-          <div class="parsed-table">${tags}</div>
-        </div>`;
-      }
-
-      return `<div class="${cls}"><span class="rec-value">${esc(data)}</span><span class="rec-ttl">${ttl}</span></div>`;
-    }
-  }
+    list.appendChild(card);
+  });
 }
 
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+function toggleCard(id) {
+  const c = data.find(x => x.id === id);
+  if (c) { c._open = !c._open; save(); render(); }
 }
 
-// ── HISTORY ──
-function addHistory(domain) {
-  // Don't add to recent if already pinned
-  if (!pinned.includes(domain)) {
-    history = [domain, ...history.filter(d => d !== domain)].slice(0, 3);
-    localStorage.setItem('dns_history', JSON.stringify(history));
-  }
-  renderHistory();
+/* ── SEARCH ── */
+function onSearch(q) { searchQuery = q; render(); }
+function clearSearch() { searchQuery = ''; document.getElementById('searchInput').value = ''; render(); }
+
+/* ── CLIENT ── */
+function openAddClient() {
+  editingClientId = null; selectedColor = COLORS[0];
+  document.getElementById('clientModalTitle').textContent = 'New Client';
+  document.getElementById('clientModalBtn').textContent   = 'Add Client';
+  ['mCName','mCIndustry','mCWebsite','mCNotes'].forEach(id => document.getElementById(id).value = '');
+  buildColors('clientColorOpts', selectedColor);
+  openModal('clientModal');
+}
+function openEditClient(id) {
+  const c = data.find(x => x.id === id); if (!c) return;
+  editingClientId = id; selectedColor = c.color;
+  document.getElementById('clientModalTitle').textContent = 'Edit Client';
+  document.getElementById('clientModalBtn').textContent   = 'Save Changes';
+  document.getElementById('mCName').value     = c.name;
+  document.getElementById('mCIndustry').value = c.industry || '';
+  document.getElementById('mCWebsite').value  = c.website  || '';
+  document.getElementById('mCNotes').value    = c.notes    || '';
+  buildColors('clientColorOpts', selectedColor);
+  openModal('clientModal');
+}
+function syncColor(name, color) {
+  try { const reg=JSON.parse(localStorage.getItem('chub_colors')||'{}'); reg[name.trim().toLowerCase()]=color; localStorage.setItem('chub_colors',JSON.stringify(reg)); } catch(e) {}
+}
+function getSharedColor(name) {
+  try { const reg=JSON.parse(localStorage.getItem('chub_colors')||'{}'); return reg[name.trim().toLowerCase()]||null; } catch(e) { return null; }
 }
 
-function togglePin(domain) {
-  if (pinned.includes(domain)) {
-    pinned = pinned.filter(d => d !== domain);
+function saveClient() {
+  const name = document.getElementById('mCName').value.trim();
+  if (!name) { alert('Please enter a client name.'); return; }
+  const fields = { name, industry:document.getElementById('mCIndustry').value.trim(), website:document.getElementById('mCWebsite').value.trim(), notes:document.getElementById('mCNotes').value.trim(), color:selectedColor };
+  if (editingClientId) {
+    Object.assign(data.find(c => c.id === editingClientId), fields);
+    toast('Client updated');
   } else {
-    pinned = [...pinned, domain];
-    // Remove from recent since it's now pinned
-    history = history.filter(d => d !== domain);
-    localStorage.setItem('dns_history', JSON.stringify(history));
+    data.push({ id:uid(), addresses:[], contacts:[], _open:true, _tab:'contacts', ...fields });
+    toast('Client added');
   }
-  localStorage.setItem('dns_pinned', JSON.stringify(pinned));
-  renderHistory();
+  syncColor(name, selectedColor);
+  save(); render(); closeModal('clientModal');
+}
+function deleteClient(id) {
+  const c = data.find(x => x.id === id); if (!c) return;
+  if (!confirm(`Delete "${c.name}" and all their data?`)) return;
+  data = data.filter(x => x.id !== id);
+  save(); render(); toast('Client deleted');
 }
 
-function renderHistory() {
-  const row   = document.getElementById('historyRow');
-  const chips = document.getElementById('historyChips');
-  const all   = [...pinned, ...history.filter(d => !pinned.includes(d))];
-  if (!all.length) { row.style.display='none'; return; }
-  row.style.display = 'flex';
-
-  chips.innerHTML = all.map(d => {
-    const isPinned = pinned.includes(d);
-    return `<span class="history-chip${isPinned?' pinned':''}">
-      <span class="chip-label" onclick="useDomain('${esc(d)}')">${esc(d)}</span>
-      <button class="chip-pin" onclick="togglePin('${esc(d)}')" title="${isPinned?'Unpin':'Pin'}">${isPinned?'📌':'📍'}</button>
-    </span>`;
-  }).join('');
+/* ── ADDRESS ── */
+function openAddAddress(clientId) {
+  editingAddressId = null; addrForClient = clientId;
+  const c = data.find(x => x.id === clientId);
+  document.getElementById('addressModalTitle').textContent = `Add Address — ${c ? c.name : ''}`;
+  document.getElementById('addressModalBtn').textContent   = 'Add Address';
+  ['mALabel','mAStreet','mACity','mAState','mAPostcode','mACountry','mANotes'].forEach(id => document.getElementById(id).value = '');
+  openModal('addressModal');
+}
+function openEditAddress(clientId, addrId) {
+  const c = data.find(x => x.id === clientId);
+  const a = c && c.addresses.find(x => x.id === addrId); if (!a) return;
+  editingAddressId = addrId; addrForClient = clientId;
+  document.getElementById('addressModalTitle').textContent = 'Edit Address';
+  document.getElementById('addressModalBtn').textContent   = 'Save Changes';
+  document.getElementById('mALabel').value    = a.label    || '';
+  document.getElementById('mAStreet').value   = a.street   || '';
+  document.getElementById('mACity').value     = a.city     || '';
+  document.getElementById('mAState').value    = a.state    || '';
+  document.getElementById('mAPostcode').value = a.postcode || '';
+  document.getElementById('mACountry').value  = a.country  || '';
+  document.getElementById('mANotes').value    = a.notes    || '';
+  openModal('addressModal');
+}
+function saveAddress() {
+  const street = document.getElementById('mAStreet').value.trim();
+  const city   = document.getElementById('mACity').value.trim();
+  if (!street && !city) { alert('Please enter at least a street or city.'); return; }
+  const c = data.find(x => x.id === addrForClient); if (!c) return;
+  if (!c.addresses) c.addresses = [];
+  const fields = {
+    label:    document.getElementById('mALabel').value.trim() || 'Address',
+    street, city,
+    state:    document.getElementById('mAState').value.trim(),
+    postcode: document.getElementById('mAPostcode').value.trim(),
+    country:  document.getElementById('mACountry').value.trim(),
+    notes:    document.getElementById('mANotes').value.trim(),
+  };
+  if (editingAddressId) {
+    Object.assign(c.addresses.find(a => a.id === editingAddressId), fields);
+    toast('Address updated');
+  } else {
+    c.addresses.push({ id:uid(), ...fields });
+    c._tab = 'addresses';
+    toast('Address added');
+  }
+  save(); render(); closeModal('addressModal');
+}
+function deleteAddress(clientId, addrId) {
+  const c = data.find(x => x.id === clientId); if (!c) return;
+  const a = c.addresses.find(x => x.id === addrId);
+  if (!a || !confirm(`Delete "${a.label}"?`)) return;
+  c.addresses = c.addresses.filter(x => x.id !== addrId);
+  save(); render(); toast('Address deleted');
 }
 
-function useDomain(domain) {
-  document.getElementById('domainInput').value = domain;
-  document.getElementById('lookupBtn').disabled = false;
-  runLookup(domain);
+/* ── CONTACT ── */
+function openAddContact(clientId) {
+  editingContactId = null; ctForClient = clientId;
+  const c = data.find(x => x.id === clientId);
+  document.getElementById('contactModalTitle').textContent = `New Contact — ${c ? c.name : ''}`;
+  document.getElementById('contactModalBtn').textContent   = 'Add Contact';
+  ['mCtName','mCtRole','mCtEmail','mCtPhone','mCtMobile','mCtDept','mCtNotes'].forEach(id => document.getElementById(id).value = '');
+  openModal('contactModal');
+}
+function openEditContact(clientId, contactId) {
+  const c  = data.find(x => x.id === clientId);
+  const ct = c && c.contacts.find(x => x.id === contactId); if (!ct) return;
+  editingContactId = contactId; ctForClient = clientId;
+  document.getElementById('contactModalTitle').textContent = 'Edit Contact';
+  document.getElementById('contactModalBtn').textContent   = 'Save Changes';
+  document.getElementById('mCtName').value   = ct.name   || '';
+  document.getElementById('mCtRole').value   = ct.role   || '';
+  document.getElementById('mCtEmail').value  = ct.email  || '';
+  document.getElementById('mCtPhone').value  = ct.phone  || '';
+  document.getElementById('mCtMobile').value = ct.mobile || '';
+  document.getElementById('mCtDept').value   = ct.dept   || '';
+  document.getElementById('mCtNotes').value  = ct.notes  || '';
+  openModal('contactModal');
+}
+function saveContact() {
+  const name = document.getElementById('mCtName').value.trim();
+  if (!name) { alert('Please enter a contact name.'); return; }
+  const c = data.find(x => x.id === ctForClient); if (!c) return;
+  if (!c.contacts) c.contacts = [];
+  const fields = {
+    name,
+    role:   document.getElementById('mCtRole').value.trim(),
+    email:  document.getElementById('mCtEmail').value.trim(),
+    phone:  document.getElementById('mCtPhone').value.trim(),
+    mobile: document.getElementById('mCtMobile').value.trim(),
+    dept:   document.getElementById('mCtDept').value.trim(),
+    notes:  document.getElementById('mCtNotes').value.trim(),
+  };
+  if (editingContactId) {
+    Object.assign(c.contacts.find(x => x.id === editingContactId), fields);
+    toast('Contact updated');
+  } else {
+    c.contacts.push({ id:uid(), ...fields });
+    c._tab = 'contacts';
+    toast('Contact added');
+  }
+  save(); render(); closeModal('contactModal');
+}
+function deleteContact(clientId, contactId) {
+  const c  = data.find(x => x.id === clientId); if (!c) return;
+  const ct = c.contacts.find(x => x.id === contactId);
+  if (!ct || !confirm(`Delete "${ct.name}"?`)) return;
+  c.contacts = c.contacts.filter(x => x.id !== contactId);
+  save(); render(); toast('Contact deleted');
 }
 
-// ── DARK MODE ──
+/* ── COLOURS ── */
+function buildColors(containerId, selected) {
+  document.getElementById(containerId).innerHTML = COLORS.map(c =>
+    `<div class="color-opt${c===selected?' selected':''}" style="background:${c}" onclick="pickColor('${c}','${containerId}',this)"></div>`
+  ).join('');
+}
+function pickColor(c, cid, el) {
+  selectedColor = c;
+  document.querySelectorAll(`#${cid} .color-opt`).forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+/* ── EXPORT / IMPORT ── */
+function exportData() {
+  if (!data.length) { toast('No data to export'); return; }
+  const blob = new Blob([JSON.stringify({version:'2.0',exportedAt:new Date().toISOString(),clients:data},null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob), a = document.createElement('a'), d = new Date();
+  a.href = url; a.download = 'client-info-'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('✓ Exported');
+}
+function importData(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result), imported = parsed.clients || parsed;
+      if (!Array.isArray(imported)) throw new Error();
+      if (!confirm(`Import ${imported.length} client(s)? This will replace all current data.`)) return;
+      data = imported; save(); render(); toast(`✓ Imported ${imported.length} client(s)`);
+    } catch { toast('✗ Invalid file'); }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ── MODALS ── */
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+  setTimeout(() => { const i = document.querySelector(`#${id} input`); if (i) i.focus(); }, 100);
+}
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); }));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.show').forEach(o => closeModal(o.id)); });
+
+/* ── TOAST ── */
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.background = 'var(--accent)';
+  t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._t);
+  t._t = setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(10px)'; }, 2800);
+}
+
+/* ── DARK MODE ── */
 let darkMode = localStorage.getItem('chub-dark') === '1';
 function applyDark() { document.body.classList.toggle('dark', darkMode); document.getElementById('darkBtn').textContent = darkMode ? '☀️' : '🌙'; }
-function toggleDark() { darkMode = !darkMode; localStorage.setItem('chub-dark', darkMode?'1':'0'); applyDark(); }
+function toggleDark() { darkMode = !darkMode; localStorage.setItem('chub-dark', darkMode ? '1' : '0'); applyDark(); }
+applyDark();
+
+// Apply shared colour registry — sync colours from other pages by client name
+(function applySharedColors() {
+  try {
+    const reg = JSON.parse(localStorage.getItem('chub_colors') || '{}');
+    data.forEach(c => {
+      const shared = reg[c.name.trim().toLowerCase()];
+      if (shared && shared !== c.color) c.color = shared;
+    });
+    save();
+  } catch(e) {}
+})();
 
 
 function toggleNav(){
@@ -729,7 +730,742 @@ document.addEventListener('click',function(e){
   if(w&&!w.contains(e.target)){document.getElementById('navDropdown').classList.remove('open');document.getElementById('navTrigger').classList.remove('open');}
 });
 
-init();
+render();
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='%23c96442'/></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Information</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f0eb; --bg2:#ede8e0; --surface:#fff; --surface2:#faf7f4;
+  --border:#e0d9d0; --border2:#cfc8be; --text:#1a1714; --text2:#4a4540;
+  --muted:#8a847c; --accent:#c96442; --accent-light:#f5e8e2;
+  --shadow:rgba(60,40,20,0.08); --shadow-lg:rgba(60,40,20,0.13);
+}
+body.dark {
+  --bg:#18160f; --bg2:#211e15; --surface:#26221a; --surface2:#2e2a20;
+  --border:#38332a; --border2:#4a4438; --text:#f0ebe3; --text2:#b8b0a4;
+  --muted:#7a7268; --accent:#d4714e; --accent-light:rgba(212,113,78,0.15);
+  --shadow:rgba(0,0,0,0.3); --shadow-lg:rgba(0,0,0,0.5);
+}
+*{ margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; transition:background .3s,color .3s; }
+body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image: radial-gradient(ellipse 70% 50% at 10% 0%,rgba(201,100,66,.07) 0%,transparent 55%), radial-gradient(ellipse 50% 60% at 90% 100%,rgba(92,122,107,.06) 0%,transparent 50%); }
+body.dark::before { background-image: radial-gradient(ellipse 70% 50% at 10% 0%,rgba(212,113,78,.09) 0%,transparent 55%), radial-gradient(ellipse 50% 60% at 90% 100%,rgba(92,122,107,.07) 0%,transparent 50%); }
+
+header { position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:20px 44px; background:rgba(255,255,255,.8); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); transition:background .3s,border-color .3s; }
+body.dark header { background:rgba(24,22,15,.85); }
+.logo { font-family:'Lora',serif; font-size:20px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:9px; text-decoration:none; }
+.logo-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+.header-right { display:flex; align-items:center; gap:10px; }
+.nav-link { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; border:1px solid var(--border2); background:var(--surface2); color:var(--text2); font-size:13px; font-weight:500; text-decoration:none; transition:all .15s; }
+.nav-link:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+.dark-btn { width:36px; height:36px; border-radius:8px; border:1px solid var(--border2); background:var(--surface2); color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; transition:all .15s; }
+.dark-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+main { position:relative; z-index:1; padding:52px 44px 100px; max-width:1200px; margin:0 auto; }
+.page-header { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:32px; flex-wrap:wrap; }
+.page-title { font-family:'Lora',serif; font-size:32px; font-weight:600; letter-spacing:-.5px; line-height:1.15; margin-bottom:6px; }
+.page-title em { color:var(--accent); font-style:italic; font-weight:400; }
+.page-sub { font-size:14px; color:var(--muted); }
+.page-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+
+.btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:8px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; font-weight:600; cursor:pointer; transition:all .18s; text-decoration:none; white-space:nowrap; }
+.btn-primary { background:var(--accent); color:#fff; box-shadow:0 1px 3px rgba(201,100,66,.3); }
+.btn-primary:hover { background:#b85838; transform:translateY(-1px); }
+.btn-outline { background:var(--surface); color:var(--text2); border:1px solid var(--border2); }
+.btn-outline:hover { background:var(--surface2); color:var(--text); border-color:var(--accent); }
+.btn-danger { background:#fff0ee; color:#c0392b; border:1px solid #f5c6c2; }
+.btn-danger:hover { background:#ffe4e0; }
+body.dark .btn-danger { background:rgba(192,57,43,.15); color:#e57373; border-color:rgba(192,57,43,.3); }
+body.dark .btn-danger:hover { background:rgba(192,57,43,.25); }
+.btn-sm { padding:5px 12px; font-size:12px; }
+.btn-xs { padding:3px 9px; font-size:11px; border-radius:6px; }
+.btn-icon { width:30px; height:30px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:7px; font-size:13px; flex-shrink:0; }
+
+.search-wrap { display:flex; align-items:center; background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:28px; transition:border-color .18s; max-width:420px; }
+.search-wrap:focus-within { border-color:var(--accent); }
+.search-icon { padding:0 10px 0 14px; color:var(--muted); display:flex; align-items:center; flex-shrink:0; }
+.search-input { flex:1; background:transparent; border:none; outline:none; padding:11px 0; color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; }
+.search-input::placeholder { color:var(--muted); }
+.search-clear { background:none; border:none; padding:0 12px; color:var(--muted); cursor:pointer; font-size:13px; display:none; transition:color .15s; }
+.search-clear:hover { color:var(--text); }
+
+/* ── CLIENT CARDS ── */
+.clients-list { display:flex; flex-direction:column; gap:14px; }
+.client-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:0 1px 3px var(--shadow); transition:box-shadow .2s,border-color .2s; }
+.client-card:hover { box-shadow:0 4px 20px var(--shadow-lg); border-color:var(--border2); }
+.client-card-header { display:flex; align-items:center; gap:14px; padding:18px 22px; cursor:pointer; user-select:none; border-bottom:1px solid transparent; transition:border-color .2s; }
+.client-card.open .client-card-header { border-bottom-color:var(--border); }
+.client-avatar { width:44px; height:44px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-family:'Lora',serif; font-size:17px; font-weight:600; color:#fff; flex-shrink:0; }
+.client-info { flex:1; min-width:0; }
+.client-name-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.client-name { font-family:'Lora',serif; font-size:18px; font-weight:600; }
+.client-industry-tag { font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; background:var(--accent-light); color:var(--accent); }
+.client-meta { font-size:12.5px; color:var(--muted); margin-top:3px; }
+.client-card-btns { display:flex; gap:6px; flex-shrink:0; }
+.chevron { font-size:11px; color:var(--muted); transition:transform .22s; flex-shrink:0; margin-left:2px; }
+.client-card.open .chevron { transform:rotate(90deg); }
+.client-card-body { display:none; }
+.client-card.open .client-card-body { display:block; }
+
+/* ── TABS ── */
+.tab-bar { display:flex; gap:2px; padding:12px 22px 0; border-bottom:1px solid var(--border); background:var(--surface2); }
+.tab-btn { padding:8px 16px; font-size:13px; font-weight:600; color:var(--muted); background:transparent; border:none; border-bottom:2px solid transparent; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; transition:color .15s; border-radius:6px 6px 0 0; margin-bottom:-1px; }
+.tab-btn:hover { color:var(--text2); }
+.tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); background:var(--surface); }
+.tab-panel { display:none; padding:22px; }
+.tab-panel.active { display:block; }
+
+/* ── ADDRESSES ── */
+.addresses-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+.address-card { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px; }
+.address-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.address-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--accent); }
+.address-card-actions { display:flex; gap:4px; flex-shrink:0; }
+.address-text { font-size:13.5px; color:var(--text2); line-height:1.7; }
+.address-entry-notes { font-size:12px; color:var(--muted); margin-top:5px; font-style:italic; }
+.address-map-link { display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--accent); text-decoration:none; margin-top:9px; font-weight:600; transition:opacity .15s; }
+.address-map-link:hover { opacity:.75; }
+.add-dashed-btn { display:flex; align-items:center; justify-content:center; gap:8px; border:1.5px dashed var(--border2); border-radius:12px; padding:20px; cursor:pointer; color:var(--muted); font-size:13px; font-weight:500; transition:all .18s; background:transparent; width:100%; font-family:'Plus Jakarta Sans',sans-serif; }
+.add-dashed-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+
+/* ── CONTACTS ── */
+.contacts-grid { display:flex; flex-direction:column; gap:10px; }
+.contact-card { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px 18px; display:flex; align-items:flex-start; gap:14px; }
+.contact-avatar { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-family:'Lora',serif; font-size:14px; font-weight:600; color:#fff; flex-shrink:0; }
+.contact-body { flex:1; min-width:0; }
+.contact-name { font-size:14.5px; font-weight:600; color:var(--text); }
+.contact-role { font-size:12.5px; color:var(--muted); margin-top:1px; }
+.contact-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+.contact-chip { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:8px; background:var(--surface); border:1px solid var(--border); font-size:12.5px; color:var(--text2); text-decoration:none; transition:all .15s; }
+a.contact-chip:hover { border-color:var(--accent); color:var(--accent); }
+.chip-icon { opacity:.55; font-size:11px; }
+.contact-note { font-size:12px; color:var(--muted); margin-top:8px; font-style:italic; line-height:1.55; }
+.contact-actions { display:flex; gap:5px; flex-shrink:0; }
+
+/* ── NOTES ── */
+.notes-area { font-size:14px; color:var(--text2); line-height:1.75; white-space:pre-wrap; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:18px; min-height:80px; }
+
+/* ── EMPTY ── */
+.empty { text-align:center; padding:80px 20px; color:var(--muted); }
+.empty-icon { font-size:48px; opacity:.3; margin-bottom:14px; }
+.empty-title { font-family:'Lora',serif; font-size:22px; color:var(--text2); margin-bottom:8px; }
+.empty-desc { font-size:14px; max-width:300px; margin:0 auto 24px; line-height:1.6; }
+
+/* ── MODAL ── */
+.modal-overlay { position:fixed; inset:0; background:rgba(26,23,20,.4); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; z-index:1000; opacity:0; pointer-events:none; transition:opacity .22s; padding:20px; }
+.modal-overlay.show { opacity:1; pointer-events:all; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:32px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; box-shadow:0 40px 80px rgba(60,40,20,.18); transform:scale(.96) translateY(8px); transition:transform .25s cubic-bezier(.34,1.56,.64,1); }
+.modal-overlay.show .modal { transform:scale(1) translateY(0); }
+.modal h3 { font-family:'Lora',serif; font-size:20px; font-weight:600; margin-bottom:22px; }
+.modal-field { margin-bottom:14px; }
+.modal-field label { display:block; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+.modal-field input, .modal-field textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:9px; color:var(--text); padding:10px 13px; font-size:14px; font-family:'Plus Jakarta Sans',sans-serif; outline:none; transition:border-color .18s; resize:vertical; }
+.modal-field input:focus, .modal-field textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(201,100,66,.1); }
+.modal-field input::placeholder, .modal-field textarea::placeholder { color:var(--border2); }
+.modal-field textarea { min-height:72px; }
+.modal-2col { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.modal-actions { display:flex; gap:10px; margin-top:24px; justify-content:flex-end; }
+.btn-cancel { padding:9px 17px; background:transparent; border:1px solid var(--border2); border-radius:8px; color:var(--text2); font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; cursor:pointer; transition:all .15s; }
+.btn-cancel:hover { background:var(--surface2); }
+.btn-confirm { padding:9px 17px; background:var(--accent); border:none; border-radius:8px; color:#fff; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all .18s; }
+.btn-confirm:hover { background:#b85838; }
+.color-options { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+.color-opt { width:28px; height:28px; border-radius:7px; cursor:pointer; border:2.5px solid transparent; transition:transform .15s,border-color .15s; }
+.color-opt:hover { transform:scale(1.12); }
+.color-opt.selected { border-color:var(--text); }
+.modal-divider { height:1px; background:var(--border); margin:18px 0; }
+
+.toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); color:#fff; padding:11px 22px; border-radius:10px; font-size:13.5px; font-family:'Plus Jakarta Sans',sans-serif; font-weight:500; z-index:9999; box-shadow:0 4px 20px rgba(60,40,20,.25); opacity:0; transition:opacity .25s,transform .25s; pointer-events:none; white-space:nowrap; }
+
+@media(max-width:640px) {
+  header { padding:16px 20px; }
+  main { padding:32px 20px 80px; }
+  .modal-2col { grid-template-columns:1fr; }
+  .tab-btn { padding:7px 11px; font-size:12px; }
+}
+
+  /* ── NAV DROPDOWN ── */
+  .nav-wrap { position:relative; z-index:100; }
+  .nav-trigger {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:8px 14px; border-radius:9px;
+    border:1px solid var(--border2); background:var(--surface2);
+    color:var(--text2); font-size:13px; font-weight:600;
+    cursor:pointer; transition:all .15s; font-family:'Plus Jakarta Sans',sans-serif;
+    user-select:none;
+  }
+  .nav-trigger:hover, .nav-trigger.open { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+  .nav-trigger-chevron { font-size:9px; opacity:.6; transition:transform .2s; }
+  .nav-trigger.open .nav-trigger-chevron { transform:rotate(180deg); }
+  .nav-dropdown {
+    position:absolute; top:calc(100% + 8px); left:0;
+    background:var(--surface); border:1px solid var(--border2);
+    border-radius:13px; box-shadow:0 8px 32px var(--shadow-lg);
+    min-width:200px; z-index:200; overflow:hidden;
+    opacity:0; pointer-events:none;
+    transform:translateY(-6px) scale(.98);
+    transition:opacity .18s, transform .18s;
+    transform-origin:top left;
+  }
+  .nav-dropdown.open { opacity:1; pointer-events:all; transform:translateY(0) scale(1); }
+  .nav-section-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); padding:10px 14px 4px; }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:9px 14px; color:var(--text2); text-decoration:none; font-size:13.5px; font-weight:500; transition:background .12s,color .12s; }
+  .nav-item:hover { background:var(--surface2); color:var(--text); }
+  .nav-item.active { color:var(--accent); background:var(--accent-light); font-weight:600; }
+  .nav-item-icon { font-size:15px; width:20px; text-align:center; flex-shrink:0; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html"><span class="logo-dot"></span>home.</a>
+  <div class="header-right">
+    <div class="nav-wrap" id="navWrap">
+  <button class="nav-trigger" id="navTrigger" onclick="toggleNav()">
+    ☰ Menu <span class="nav-trigger-chevron">▼</span>
+  </button>
+  <div class="nav-dropdown" id="navDropdown">
+    <div class="nav-section-label">Pages</div>
+    <a class="nav-item" href="index.html"><span class="nav-item-icon">🏠</span>home.</a><a class="nav-item" href="reports.html"><span class="nav-item-icon">📊</span>Reports</a><a class="nav-item active" href="clients.html"><span class="nav-item-icon">🏢</span>Clients</a><a class="nav-item" href="dns.html"><span class="nav-item-icon">🔍</span>DNS Lookup</a>
+  </div>
+</div>
+    <button class="dark-btn" id="darkBtn" onclick="toggleDark()">🌙</button>
+  </div>
+</header>
+
+<main>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Client <em>Information</em></div>
+      <div class="page-sub" id="pageSub">—</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="exportData()">↓ Export</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()">↑ Import</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="btn btn-primary" onclick="openAddClient()">+ Add Client</button>
+    </div>
+  </div>
+
+  <div class="search-wrap">
+    <span class="search-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+    <input class="search-input" id="searchInput" type="text" placeholder="Search clients, contacts, addresses…" oninput="onSearch(this.value)" autocomplete="off">
+    <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+  </div>
+
+  <div class="clients-list" id="clientsList"></div>
+</main>
+
+<!-- CLIENT MODAL -->
+<div class="modal-overlay" id="clientModal">
+  <div class="modal">
+    <h3 id="clientModalTitle">New Client</h3>
+    <div class="modal-2col">
+      <div class="modal-field"><label>Company Name</label><input type="text" id="mCName" placeholder="Acme Corporation"></div>
+      <div class="modal-field"><label>Industry / Type</label><input type="text" id="mCIndustry" placeholder="e.g. IT, Finance…"></div>
+    </div>
+    <div class="modal-field"><label>Website</label><input type="url" id="mCWebsite" placeholder="https://…"></div>
+    <div class="modal-field"><label>Notes</label><textarea id="mCNotes" placeholder="General notes about this client…"></textarea></div>
+    <div class="modal-field"><label>Colour</label><div class="color-options" id="clientColorOpts"></div></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('clientModal')">Cancel</button>
+      <button class="btn-confirm" id="clientModalBtn" onclick="saveClient()">Add Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADDRESS MODAL -->
+<div class="modal-overlay" id="addressModal">
+  <div class="modal">
+    <h3 id="addressModalTitle">Add Address</h3>
+    <div class="modal-field"><label>Label</label><input type="text" id="mALabel" placeholder="e.g. Head Office, Warehouse, Site B…"></div>
+    <div class="modal-field"><label>Street</label><input type="text" id="mAStreet" placeholder="123 Example Street"></div>
+    <div class="modal-2col">
+      <div class="modal-field"><label>Suburb / City</label><input type="text" id="mACity" placeholder="Sydney"></div>
+      <div class="modal-field"><label>State</label><input type="text" id="mAState" placeholder="NSW"></div>
+    </div>
+    <div class="modal-2col">
+      <div class="modal-field"><label>Postcode</label><input type="text" id="mAPostcode" placeholder="2000"></div>
+      <div class="modal-field"><label>Country</label><input type="text" id="mACountry" placeholder="Australia"></div>
+    </div>
+    <div class="modal-field"><label>Entry Notes</label><input type="text" id="mANotes" placeholder="e.g. Level 4, buzz 42 on arrival…"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('addressModal')">Cancel</button>
+      <button class="btn-confirm" id="addressModalBtn" onclick="saveAddress()">Add Address</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT MODAL -->
+<div class="modal-overlay" id="contactModal">
+  <div class="modal">
+    <h3 id="contactModalTitle">New Contact</h3>
+    <div class="modal-2col">
+      <div class="modal-field"><label>Full Name</label><input type="text" id="mCtName" placeholder="Jane Smith"></div>
+      <div class="modal-field"><label>Job Title / Role</label><input type="text" id="mCtRole" placeholder="IT Manager"></div>
+    </div>
+    <div class="modal-2col">
+      <div class="modal-field"><label>Email</label><input type="email" id="mCtEmail" placeholder="jane@example.com"></div>
+      <div class="modal-field"><label>Department</label><input type="text" id="mCtDept" placeholder="e.g. Finance, IT…"></div>
+    </div>
+    <div class="modal-2col">
+      <div class="modal-field"><label>Phone (office)</label><input type="tel" id="mCtPhone" placeholder="+61 2 xxxx xxxx"></div>
+      <div class="modal-field"><label>Mobile</label><input type="tel" id="mCtMobile" placeholder="+61 4xx xxx xxx"></div>
+    </div>
+    <div class="modal-field"><label>Notes</label><textarea id="mCtNotes" placeholder="Any notes about this contact…" style="min-height:60px"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('contactModal')">Cancel</button>
+      <button class="btn-confirm" id="contactModalBtn" onclick="saveContact()">Add Contact</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const COLORS = ['#c96442','#9b6b4a','#5c7a6b','#7a6b9b','#6b8a9b','#9b8a5c','#7a4a6b','#4a7a5c','#bf6e42','#6b9b7a'];
+const KEY = 'ci_v2';
+
+let data = [];
+try { data = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) {}
+
+let editingClientId  = null;
+let editingAddressId = null;
+let addrForClient    = null;
+let editingContactId = null;
+let ctForClient      = null;
+let selectedColor    = COLORS[0];
+let searchQuery      = '';
+
+function uid()  { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+
+function fmtAddr(a) {
+  return [a.street, a.city, a.state, a.postcode, a.country].filter(Boolean).join(', ');
+}
+
+/* ── TABS ── */
+function switchTab(clientId, tab) {
+  const card = document.getElementById('card_' + clientId);
+  if (!card) return;
+  card.querySelectorAll('.tab-btn').forEach(b   => b.classList.toggle('active',   b.dataset.tab   === tab));
+  card.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === tab));
+  const c = data.find(x => x.id === clientId);
+  if (c) { c._tab = tab; save(); }
+}
+
+/* ── RENDER ── */
+function render() {
+  const list = document.getElementById('clientsList');
+  const q    = searchQuery.toLowerCase();
+
+  let clients = data;
+  if (q) {
+    clients = data.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      (c.industry||'').toLowerCase().includes(q) ||
+      (c.notes||'').toLowerCase().includes(q) ||
+      (c.addresses||[]).some(a => fmtAddr(a).toLowerCase().includes(q) || (a.label||'').toLowerCase().includes(q) || (a.notes||'').toLowerCase().includes(q)) ||
+      (c.contacts||[]).some(ct =>
+        ct.name.toLowerCase().includes(q) ||
+        (ct.role||'').toLowerCase().includes(q) ||
+        (ct.email||'').toLowerCase().includes(q) ||
+        (ct.phone||'').toLowerCase().includes(q) ||
+        (ct.mobile||'').toLowerCase().includes(q) ||
+        (ct.dept||'').toLowerCase().includes(q) ||
+        (ct.notes||'').toLowerCase().includes(q)
+      )
+    );
+  }
+
+  document.getElementById('pageSub').textContent = data.length
+    ? `${data.length} client${data.length!==1?'s':''}`
+    : 'No clients yet';
+  document.getElementById('searchClear').style.display = q ? 'block' : 'none';
+
+  list.innerHTML = '';
+
+  if (!clients.length) {
+    list.innerHTML = q
+      ? `<div class="empty"><div class="empty-icon">🔎</div><div class="empty-title">No results</div><div class="empty-desc">Nothing matched "<strong>${esc(searchQuery)}</strong>"</div></div>`
+      : `<div class="empty"><div class="empty-icon">🏢</div><div class="empty-title">No clients yet</div><div class="empty-desc">Add your first client to get started.</div><button class="btn btn-primary" onclick="openAddClient()">+ Add Client</button></div>`;
+    return;
+  }
+
+  clients.forEach(client => {
+    const addresses = client.addresses || [];
+    const contacts  = client.contacts  || [];
+    const isOpen    = !!client._open;
+    const activeTab = client._tab || 'contacts';
+
+    // Meta summary
+    const meta = [];
+    if (client.website) meta.push(client.website.replace(/^https?:\/\//,''));
+    if (addresses.length) meta.push(`${addresses.length} address${addresses.length!==1?'es':''}`);
+    if (contacts.length)  meta.push(`${contacts.length} contact${contacts.length!==1?'s':''}`);
+
+    // --- CONTACTS TAB ---
+    const ctCards = contacts.map(ct => {
+      const initials = ct.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const chips = [];
+      if (ct.email)  chips.push(`<a class="contact-chip" href="mailto:${esc(ct.email)}"><span class="chip-icon">✉</span>${esc(ct.email)}</a>`);
+      if (ct.phone)  chips.push(`<a class="contact-chip" href="tel:${esc(ct.phone)}"><span class="chip-icon">📞</span>${esc(ct.phone)}</a>`);
+      if (ct.mobile) chips.push(`<a class="contact-chip" href="tel:${esc(ct.mobile)}"><span class="chip-icon">📱</span>${esc(ct.mobile)}</a>`);
+      if (ct.dept)   chips.push(`<span class="contact-chip"><span class="chip-icon">🏷</span>${esc(ct.dept)}</span>`);
+      return `
+        <div class="contact-card">
+          <div class="contact-avatar" style="background:${client.color}">${initials}</div>
+          <div class="contact-body">
+            <div class="contact-name">${esc(ct.name)}</div>
+            ${ct.role ? `<div class="contact-role">${esc(ct.role)}</div>` : ''}
+            ${chips.length ? `<div class="contact-chips">${chips.join('')}</div>` : ''}
+            ${ct.notes ? `<div class="contact-note">${esc(ct.notes)}</div>` : ''}
+          </div>
+          <div class="contact-actions">
+            <button class="btn btn-outline btn-icon btn-sm" onclick="openEditContact('${client.id}','${ct.id}')" title="Edit">✏</button>
+            <button class="btn btn-danger btn-icon btn-sm" onclick="deleteContact('${client.id}','${ct.id}')" title="Delete">✕</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    // --- ADDRESSES TAB ---
+    const addrCards = addresses.map(a => `
+      <div class="address-card">
+        <div class="address-card-header">
+          <div class="address-label">${esc(a.label||'Address')}</div>
+          <div class="address-card-actions">
+            <button class="btn btn-outline btn-xs" onclick="openEditAddress('${client.id}','${a.id}')">✏</button>
+            <button class="btn btn-danger btn-xs" onclick="deleteAddress('${client.id}','${a.id}')">✕</button>
+          </div>
+        </div>
+        <div class="address-text">${esc(fmtAddr(a))}</div>
+        ${a.notes ? `<div class="address-entry-notes">${esc(a.notes)}</div>` : ''}
+        <a class="address-map-link" href="https://maps.google.com?q=${encodeURIComponent(fmtAddr(a))}" target="_blank" rel="noopener">🗺 Open in Maps</a>
+      </div>`).join('');
+
+    const card = document.createElement('div');
+    card.className = 'client-card' + (isOpen ? ' open' : '');
+    card.id = 'card_' + client.id;
+
+    card.innerHTML = `
+      <div class="client-card-header" onclick="toggleCard('${client.id}')">
+        <div class="client-avatar" style="background:${client.color}">${client.name[0].toUpperCase()}</div>
+        <div class="client-info">
+          <div class="client-name-row">
+            <span class="client-name">${esc(client.name)}</span>
+            ${client.industry ? `<span class="client-industry-tag">${esc(client.industry)}</span>` : ''}
+          </div>
+          ${meta.length ? `<div class="client-meta">${meta.join(' · ')}</div>` : ''}
+        </div>
+        <div class="client-card-btns" onclick="event.stopPropagation()">
+          <button class="btn btn-outline btn-icon btn-sm" onclick="openEditClient('${client.id}')">✏</button>
+          <button class="btn btn-danger btn-icon btn-sm" onclick="deleteClient('${client.id}')">✕</button>
+        </div>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="client-card-body">
+        <div class="tab-bar">
+          <button class="tab-btn${activeTab==='contacts'?' active':''}" data-tab="contacts" onclick="switchTab('${client.id}','contacts')">
+            Contacts${contacts.length ? ` <span style="opacity:.55;font-size:11px">(${contacts.length})</span>` : ''}
+          </button>
+          <button class="tab-btn${activeTab==='addresses'?' active':''}" data-tab="addresses" onclick="switchTab('${client.id}','addresses')">
+            Addresses${addresses.length ? ` <span style="opacity:.55;font-size:11px">(${addresses.length})</span>` : ''}
+          </button>
+          <button class="tab-btn${activeTab==='notes'?' active':''}" data-tab="notes" onclick="switchTab('${client.id}','notes')">
+            Notes
+          </button>
+        </div>
+
+        <div class="tab-panel${activeTab==='contacts'?' active':''}" data-panel="contacts">
+          <div class="contacts-grid">
+            ${ctCards}
+            <button class="add-dashed-btn" onclick="openAddContact('${client.id}')">+ Add Contact</button>
+          </div>
+        </div>
+
+        <div class="tab-panel${activeTab==='addresses'?' active':''}" data-panel="addresses">
+          <div class="addresses-grid">
+            ${addrCards}
+            <button class="add-dashed-btn" onclick="openAddAddress('${client.id}')">+ Add Address</button>
+          </div>
+        </div>
+
+        <div class="tab-panel${activeTab==='notes'?' active':''}" data-panel="notes">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+            <button class="btn btn-outline btn-sm" onclick="openEditClient('${client.id}')">✏ Edit Notes</button>
+          </div>
+          <div class="notes-area">${client.notes ? esc(client.notes) : '<span style="color:var(--muted);font-style:italic">No notes added yet.</span>'}</div>
+        </div>
+      </div>`;
+
+    list.appendChild(card);
+  });
+}
+
+function toggleCard(id) {
+  const c = data.find(x => x.id === id);
+  if (c) { c._open = !c._open; save(); render(); }
+}
+
+/* ── SEARCH ── */
+function onSearch(q) { searchQuery = q; render(); }
+function clearSearch() { searchQuery = ''; document.getElementById('searchInput').value = ''; render(); }
+
+/* ── CLIENT ── */
+function openAddClient() {
+  editingClientId = null; selectedColor = COLORS[0];
+  document.getElementById('clientModalTitle').textContent = 'New Client';
+  document.getElementById('clientModalBtn').textContent   = 'Add Client';
+  ['mCName','mCIndustry','mCWebsite','mCNotes'].forEach(id => document.getElementById(id).value = '');
+  buildColors('clientColorOpts', selectedColor);
+  openModal('clientModal');
+}
+function openEditClient(id) {
+  const c = data.find(x => x.id === id); if (!c) return;
+  editingClientId = id; selectedColor = c.color;
+  document.getElementById('clientModalTitle').textContent = 'Edit Client';
+  document.getElementById('clientModalBtn').textContent   = 'Save Changes';
+  document.getElementById('mCName').value     = c.name;
+  document.getElementById('mCIndustry').value = c.industry || '';
+  document.getElementById('mCWebsite').value  = c.website  || '';
+  document.getElementById('mCNotes').value    = c.notes    || '';
+  buildColors('clientColorOpts', selectedColor);
+  openModal('clientModal');
+}
+function syncColor(name, color) {
+  try { const reg=JSON.parse(localStorage.getItem('chub_colors')||'{}'); reg[name.trim().toLowerCase()]=color; localStorage.setItem('chub_colors',JSON.stringify(reg)); } catch(e) {}
+}
+function getSharedColor(name) {
+  try { const reg=JSON.parse(localStorage.getItem('chub_colors')||'{}'); return reg[name.trim().toLowerCase()]||null; } catch(e) { return null; }
+}
+
+function saveClient() {
+  const name = document.getElementById('mCName').value.trim();
+  if (!name) { alert('Please enter a client name.'); return; }
+  const fields = { name, industry:document.getElementById('mCIndustry').value.trim(), website:document.getElementById('mCWebsite').value.trim(), notes:document.getElementById('mCNotes').value.trim(), color:selectedColor };
+  if (editingClientId) {
+    Object.assign(data.find(c => c.id === editingClientId), fields);
+    toast('Client updated');
+  } else {
+    data.push({ id:uid(), addresses:[], contacts:[], _open:true, _tab:'contacts', ...fields });
+    toast('Client added');
+  }
+  syncColor(name, selectedColor);
+  save(); render(); closeModal('clientModal');
+}
+function deleteClient(id) {
+  const c = data.find(x => x.id === id); if (!c) return;
+  if (!confirm(`Delete "${c.name}" and all their data?`)) return;
+  data = data.filter(x => x.id !== id);
+  save(); render(); toast('Client deleted');
+}
+
+/* ── ADDRESS ── */
+function openAddAddress(clientId) {
+  editingAddressId = null; addrForClient = clientId;
+  const c = data.find(x => x.id === clientId);
+  document.getElementById('addressModalTitle').textContent = `Add Address — ${c ? c.name : ''}`;
+  document.getElementById('addressModalBtn').textContent   = 'Add Address';
+  ['mALabel','mAStreet','mACity','mAState','mAPostcode','mACountry','mANotes'].forEach(id => document.getElementById(id).value = '');
+  openModal('addressModal');
+}
+function openEditAddress(clientId, addrId) {
+  const c = data.find(x => x.id === clientId);
+  const a = c && c.addresses.find(x => x.id === addrId); if (!a) return;
+  editingAddressId = addrId; addrForClient = clientId;
+  document.getElementById('addressModalTitle').textContent = 'Edit Address';
+  document.getElementById('addressModalBtn').textContent   = 'Save Changes';
+  document.getElementById('mALabel').value    = a.label    || '';
+  document.getElementById('mAStreet').value   = a.street   || '';
+  document.getElementById('mACity').value     = a.city     || '';
+  document.getElementById('mAState').value    = a.state    || '';
+  document.getElementById('mAPostcode').value = a.postcode || '';
+  document.getElementById('mACountry').value  = a.country  || '';
+  document.getElementById('mANotes').value    = a.notes    || '';
+  openModal('addressModal');
+}
+function saveAddress() {
+  const street = document.getElementById('mAStreet').value.trim();
+  const city   = document.getElementById('mACity').value.trim();
+  if (!street && !city) { alert('Please enter at least a street or city.'); return; }
+  const c = data.find(x => x.id === addrForClient); if (!c) return;
+  if (!c.addresses) c.addresses = [];
+  const fields = {
+    label:    document.getElementById('mALabel').value.trim() || 'Address',
+    street, city,
+    state:    document.getElementById('mAState').value.trim(),
+    postcode: document.getElementById('mAPostcode').value.trim(),
+    country:  document.getElementById('mACountry').value.trim(),
+    notes:    document.getElementById('mANotes').value.trim(),
+  };
+  if (editingAddressId) {
+    Object.assign(c.addresses.find(a => a.id === editingAddressId), fields);
+    toast('Address updated');
+  } else {
+    c.addresses.push({ id:uid(), ...fields });
+    c._tab = 'addresses';
+    toast('Address added');
+  }
+  save(); render(); closeModal('addressModal');
+}
+function deleteAddress(clientId, addrId) {
+  const c = data.find(x => x.id === clientId); if (!c) return;
+  const a = c.addresses.find(x => x.id === addrId);
+  if (!a || !confirm(`Delete "${a.label}"?`)) return;
+  c.addresses = c.addresses.filter(x => x.id !== addrId);
+  save(); render(); toast('Address deleted');
+}
+
+/* ── CONTACT ── */
+function openAddContact(clientId) {
+  editingContactId = null; ctForClient = clientId;
+  const c = data.find(x => x.id === clientId);
+  document.getElementById('contactModalTitle').textContent = `New Contact — ${c ? c.name : ''}`;
+  document.getElementById('contactModalBtn').textContent   = 'Add Contact';
+  ['mCtName','mCtRole','mCtEmail','mCtPhone','mCtMobile','mCtDept','mCtNotes'].forEach(id => document.getElementById(id).value = '');
+  openModal('contactModal');
+}
+function openEditContact(clientId, contactId) {
+  const c  = data.find(x => x.id === clientId);
+  const ct = c && c.contacts.find(x => x.id === contactId); if (!ct) return;
+  editingContactId = contactId; ctForClient = clientId;
+  document.getElementById('contactModalTitle').textContent = 'Edit Contact';
+  document.getElementById('contactModalBtn').textContent   = 'Save Changes';
+  document.getElementById('mCtName').value   = ct.name   || '';
+  document.getElementById('mCtRole').value   = ct.role   || '';
+  document.getElementById('mCtEmail').value  = ct.email  || '';
+  document.getElementById('mCtPhone').value  = ct.phone  || '';
+  document.getElementById('mCtMobile').value = ct.mobile || '';
+  document.getElementById('mCtDept').value   = ct.dept   || '';
+  document.getElementById('mCtNotes').value  = ct.notes  || '';
+  openModal('contactModal');
+}
+function saveContact() {
+  const name = document.getElementById('mCtName').value.trim();
+  if (!name) { alert('Please enter a contact name.'); return; }
+  const c = data.find(x => x.id === ctForClient); if (!c) return;
+  if (!c.contacts) c.contacts = [];
+  const fields = {
+    name,
+    role:   document.getElementById('mCtRole').value.trim(),
+    email:  document.getElementById('mCtEmail').value.trim(),
+    phone:  document.getElementById('mCtPhone').value.trim(),
+    mobile: document.getElementById('mCtMobile').value.trim(),
+    dept:   document.getElementById('mCtDept').value.trim(),
+    notes:  document.getElementById('mCtNotes').value.trim(),
+  };
+  if (editingContactId) {
+    Object.assign(c.contacts.find(x => x.id === editingContactId), fields);
+    toast('Contact updated');
+  } else {
+    c.contacts.push({ id:uid(), ...fields });
+    c._tab = 'contacts';
+    toast('Contact added');
+  }
+  save(); render(); closeModal('contactModal');
+}
+function deleteContact(clientId, contactId) {
+  const c  = data.find(x => x.id === clientId); if (!c) return;
+  const ct = c.contacts.find(x => x.id === contactId);
+  if (!ct || !confirm(`Delete "${ct.name}"?`)) return;
+  c.contacts = c.contacts.filter(x => x.id !== contactId);
+  save(); render(); toast('Contact deleted');
+}
+
+/* ── COLOURS ── */
+function buildColors(containerId, selected) {
+  document.getElementById(containerId).innerHTML = COLORS.map(c =>
+    `<div class="color-opt${c===selected?' selected':''}" style="background:${c}" onclick="pickColor('${c}','${containerId}',this)"></div>`
+  ).join('');
+}
+function pickColor(c, cid, el) {
+  selectedColor = c;
+  document.querySelectorAll(`#${cid} .color-opt`).forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+/* ── EXPORT / IMPORT ── */
+function exportData() {
+  if (!data.length) { toast('No data to export'); return; }
+  const blob = new Blob([JSON.stringify({version:'2.0',exportedAt:new Date().toISOString(),clients:data},null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob), a = document.createElement('a'), d = new Date();
+  a.href = url; a.download = 'client-info-'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('✓ Exported');
+}
+function importData(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result), imported = parsed.clients || parsed;
+      if (!Array.isArray(imported)) throw new Error();
+      if (!confirm(`Import ${imported.length} client(s)? This will replace all current data.`)) return;
+      data = imported; save(); render(); toast(`✓ Imported ${imported.length} client(s)`);
+    } catch { toast('✗ Invalid file'); }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ── MODALS ── */
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+  setTimeout(() => { const i = document.querySelector(`#${id} input`); if (i) i.focus(); }, 100);
+}
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); }));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.show').forEach(o => closeModal(o.id)); });
+
+/* ── TOAST ── */
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.background = 'var(--accent)';
+  t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._t);
+  t._t = setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(10px)'; }, 2800);
+}
+
+/* ── DARK MODE ── */
+let darkMode = localStorage.getItem('chub-dark') === '1';
+function applyDark() { document.body.classList.toggle('dark', darkMode); document.getElementById('darkBtn').textContent = darkMode ? '☀️' : '🌙'; }
+function toggleDark() { darkMode = !darkMode; localStorage.setItem('chub-dark', darkMode ? '1' : '0'); applyDark(); }
+applyDark();
+
+// Apply shared colour registry — sync colours from other pages by client name
+(function applySharedColors() {
+  try {
+    const reg = JSON.parse(localStorage.getItem('chub_colors') || '{}');
+    data.forEach(c => {
+      const shared = reg[c.name.trim().toLowerCase()];
+      if (shared && shared !== c.color) c.color = shared;
+    });
+    save();
+  } catch(e) {}
+})();
+
+
+function toggleNav(){
+  const t=document.getElementById('navTrigger'), d=document.getElementById('navDropdown');
+  const open=d.classList.toggle('open'); t.classList.toggle('open',open);
+}
+document.addEventListener('click',function(e){
+  const w=document.getElementById('navWrap');
+  if(w&&!w.contains(e.target)){document.getElementById('navDropdown').classList.remove('open');document.getElementById('navTrigger').classList.remove('open');}
+});
+
+render();
 </script>
 </body>
 </html>
