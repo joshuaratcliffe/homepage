@@ -712,6 +712,20 @@ function openEditClient(id) {
   document.getElementById('cmName').value = c.name;
   buildSwatches(c.color); openModal('clientModal');
 }
+function syncColor(name, color) {
+  try {
+    const reg = JSON.parse(localStorage.getItem('chub_colors') || '{}');
+    reg[name.trim().toLowerCase()] = color;
+    localStorage.setItem('chub_colors', JSON.stringify(reg));
+  } catch(e) {}
+}
+function getSharedColor(name) {
+  try {
+    const reg = JSON.parse(localStorage.getItem('chub_colors') || '{}');
+    return reg[name.trim().toLowerCase()] || null;
+  } catch(e) { return null; }
+}
+
 function saveClient() {
   const name = document.getElementById('cmName').value.trim();
   if (!name) { document.getElementById('cmName').focus(); return; }
@@ -721,6 +735,7 @@ function saveClient() {
   } else {
     db.clients.push({ id:uid(), name, color, folders:[], links:[] }); toast('Client added');
   }
+  syncColor(name, color);
   save(); closeModal('clientModal'); render();
 }
 function deleteClient(id) {
@@ -1034,6 +1049,18 @@ function onSearch(q) {
 
 // Clear search state whenever we navigate
 const _navAway = () => { if (nav.length) clearSearch(); };
+
+// Apply shared colour registry — sync colours from other pages by client name
+(function applySharedColors() {
+  try {
+    const reg = JSON.parse(localStorage.getItem('chub_colors') || '{}');
+    db.clients.forEach(c => {
+      const shared = reg[c.name.trim().toLowerCase()];
+      if (shared && shared !== c.color) { c.color = shared; }
+    });
+    save();
+  } catch(e) {}
+})();
 
 render();
 </script>
