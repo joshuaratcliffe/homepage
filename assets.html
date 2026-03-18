@@ -174,7 +174,7 @@ body.dark tr.row-green td { color:#a3cfbb !important; }
   <!-- MODE SWITCHER -->
   <div class="mode-switcher">
     <button class="mode-btn active" onclick="setMode('asset')" id="modeAsset">📋 Asset Register</button>
-    <button class="mode-btn" onclick="setMode('budget')" id="modeBudget">💰 Budget / Warranty Report</button>
+    <button class="mode-btn" onclick="setMode('budget')" id="modeBudget">💰 Budget / Warranty</button>
   </div>
 
   <!-- ── ASSET REGISTER MODE ── -->
@@ -215,6 +215,31 @@ body.dark tr.row-green td { color:#a3cfbb !important; }
       </div>
       <div class="table-meta" id="assetMeta"></div>
       <div class="table-wrap"><table id="assetTable"><thead></thead><tbody></tbody></table></div>
+      <div id="assetValidation" style="display:none;margin-top:32px">
+        <div style="font-family:'Lora',serif;font-size:20px;font-weight:600;margin-bottom:6px">User <em style="color:var(--accent);font-style:italic;font-weight:400">Validation</em></div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:18px">Based on the generated register — cross-referenced against your user list.</div>
+        <div id="assetValColPicker" style="display:none;margin-bottom:18px">
+          <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">User column in register</div>
+              <select id="avAssetUserCol" onchange="runAssetValidation()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;min-width:180px"></select>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">User column in user list</div>
+              <select id="avUsersCol" onchange="runAssetValidation()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;min-width:180px"></select>
+            </div>
+          </div>
+        </div>
+        <div class="drop-zone" id="avDrop" style="max-width:460px;padding:22px 24px;margin-bottom:20px" ondragover="dzOver(event,'avDrop')" ondragleave="dzLeave('avDrop')" ondrop="dzDrop(event,'avUsers')">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile(this.files[0],'avUsers')">
+          <div class="drop-icon" style="font-size:24px;margin-bottom:6px">👥</div>
+          <div class="drop-title" style="font-size:13px">Drop company user list here</div>
+          <div class="drop-sub">Upload to compare against the register above</div>
+          <div class="drop-filename" id="avFname"></div>
+          <button class="drop-clear" id="avDclear" style="display:none" onclick="clearFile('avUsers',event)">✕</button>
+        </div>
+        <div id="assetValResults"></div>
+      </div>
     </div>
   </div>
 
@@ -236,9 +261,13 @@ body.dark tr.row-green td { color:#a3cfbb !important; }
 
     <div id="budgetColWrap" style="display:none">
       <div class="legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#842029"></div> Expired last FY or earlier</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#7d5a00"></div> Expiring this FY (Jul–Jun)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#2d6a4f"></div> Expiring next FY or later</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Financial Year</span>
+          <select id="fySelect" onchange="onFyChange()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:6px 12px;font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;cursor:pointer;transition:border-color .18s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor=''"></select>
+        </div>
+        <div class="legend-item"><div class="legend-dot" style="background:#842029"></div> Expired before selected FY</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7d5a00"></div> Expiring within selected FY</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2d6a4f"></div> Expiring after selected FY</div>
         <div class="legend-item" style="color:var(--muted)"><div class="legend-dot" style="background:var(--border)"></div> No date / unknown</div>
       </div>
       <div class="col-toggles-wrap">
@@ -256,27 +285,47 @@ body.dark tr.row-green td { color:#a3cfbb !important; }
       <div class="table-wrap"><table id="budgetTable"><thead></thead><tbody></tbody></table></div>
     </div>
   </div>
+
 </main>
 
 <div class="toast" id="toast"></div>
+
+<style>
+/* Validation results */
+.val-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:24px; }
+.val-tile { background:var(--surface); border:1px solid var(--border); border-radius:13px; padding:18px 20px; box-shadow:0 1px 3px var(--shadow); }
+.val-tile-num { font-family:'Lora',serif; font-size:36px; font-weight:600; line-height:1; margin-bottom:6px; }
+.val-tile-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+.val-section { background:var(--surface); border:1px solid var(--border); border-radius:13px; overflow:hidden; margin-bottom:16px; box-shadow:0 1px 3px var(--shadow); }
+.val-section-header { padding:13px 18px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); }
+.val-section-body { padding:0; }
+.val-row { display:flex; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid var(--border); font-size:13.5px; }
+.val-row:last-child { border-bottom:none; }
+.val-row-user { font-weight:600; color:var(--text); flex:1; }
+.val-row-detail { font-size:12px; color:var(--muted); }
+.val-badge { font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px; flex-shrink:0; }
+.val-empty { padding:20px 18px; color:var(--muted); font-style:italic; font-size:13.5px; }
+</style>
 
 <script>
 // ── STATE ──
 const DEFAULT_HIDDEN = ['processor manufacturer','expires in'];
 let mode = 'asset';
+let selectedFyYear = null; // null = current FY
 
 const state = {
-  asset:  { rows:[], cols:[], hidden:new Set(), lookupRows:[], lookupCols:[], searchQ:'', sortCol:null, sortDir:1 },
-  budget: { rows:[], cols:[], hidden:new Set(), searchQ:'', sortCol:null, sortDir:1 },
+  asset:    { rows:[], cols:[], hidden:new Set(), lookupRows:[], lookupCols:[], searchQ:'', sortCol:null, sortDir:1 },
+  budget:   { rows:[], cols:[], hidden:new Set(), searchQ:'', sortCol:null, sortDir:1 },
+  avUsers:  { rows:[], cols:[] }, // inline asset validation users
 };
 
 // ── MODE ──
 function setMode(m) {
   mode = m;
-  document.getElementById('assetMode').style.display  = m==='asset'  ? '' : 'none';
-  document.getElementById('budgetMode').style.display  = m==='budget' ? '' : 'none';
-  document.getElementById('modeAsset').classList.toggle('active',  m==='asset');
-  document.getElementById('modeBudget').classList.toggle('active', m==='budget');
+  document.getElementById('assetMode').style.display    = m==='asset'    ? '' : 'none';
+  document.getElementById('budgetMode').style.display   = m==='budget'   ? '' : 'none';
+  document.getElementById('modeAsset').classList.toggle('active',    m==='asset');
+  document.getElementById('modeBudget').classList.toggle('active',   m==='budget');
 }
 
 // ── FILE LOADING ──
@@ -284,7 +333,8 @@ function dzOver(e, id) { e.preventDefault(); document.getElementById(id).classLi
 function dzLeave(id)   { document.getElementById(id).classList.remove('drag-over'); }
 function dzDrop(e, which) {
   e.preventDefault();
-  const id = which==='main'?'drop1':which==='lookup'?'drop2':'drop3';
+  const idMap = { main:'drop1', lookup:'drop2', budget:'drop3', avUsers:'avDrop' };
+  const id = idMap[which] || 'drop1';
   document.getElementById(id).classList.remove('drag-over');
   const file = e.dataTransfer.files[0];
   if (file) loadFile(file, which);
@@ -337,11 +387,19 @@ function loadFile(file, which) {
         state.asset.lookupRows = rows; state.asset.lookupCols = cols;
         setDropState('drop2','fname2','dclear2', file.name, true);
         if (state.asset.rows.length) renderAsset();
-      } else {
+      } else if (which === 'budget') {
         state.budget.rows = rows; state.budget.cols = cols;
         state.budget.hidden = new Set(cols.filter(c => DEFAULT_HIDDEN.includes(c.toLowerCase())));
         setDropState('drop3','fname3','dclear3', file.name, true);
         renderBudget();
+      } else if (which === 'avUsers') {
+        state.avUsers.rows = rows; state.avUsers.cols = cols;
+        setDropState('avDrop','avFname','avDclear', file.name, true);
+        // Get current merged rows if available
+        const s = state.asset;
+        const { rows: mergedRows, cols: mergedCols } = mergeWithLookup(s.rows, s.cols, s.lookupRows||[], s.lookupCols||[]);
+        updateAvColPickers(mergedCols);
+        runAssetValidation(mergedCols, mergedRows);
       }
       toast('✓ Loaded ' + file.name);
     } catch(err) { toast('✗ Could not read file: ' + err.message); console.error(err); }
@@ -367,10 +425,14 @@ function clearFile(which, e) {
     state.asset.lookupRows=[]; state.asset.lookupCols=[];
     setDropState('drop2','fname2','dclear2','',false);
     if (state.asset.rows.length) renderAsset();
-  } else {
+  } else if (which === 'budget') {
     state.budget.rows=[]; state.budget.cols=[]; state.budget.hidden=new Set();
     setDropState('drop3','fname3','dclear3','',false);
     document.getElementById('budgetColWrap').style.display='none';
+  } else if (which === 'avUsers') {
+    state.avUsers.rows=[]; state.avUsers.cols=[];
+    setDropState('avDrop','avFname','avDclear','',false);
+    document.getElementById('assetValResults').innerHTML='';
   }
 }
 
@@ -438,6 +500,12 @@ function renderBudget() {
   const s = state.budget;
   if (!s.rows.length) return;
   document.getElementById('budgetColWrap').style.display = '';
+  buildFyOptions(); // populate FY dropdown (safe to call multiple times — only updates if needed)
+  // Keep existing FY selection if already set
+  if (selectedFyYear !== null) {
+    const sel = document.getElementById('fySelect');
+    if (sel) sel.value = selectedFyYear;
+  }
   renderColToggles('budgetColToggles', s.cols, s.hidden, 'budget');
 
   // Check if a usable Expires column exists with actual dates
@@ -483,15 +551,38 @@ function warrantyClass(row, cols) {
   const d = parseDate(row[expiresCol]);
   if (!d) return '';
 
-  // Australian FY: Jul 1 – Jun 30
+  // Use selectedFyYear, falling back to current Australian FY
   const now = new Date();
-  const fyYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
-  const fyStart = new Date(fyYear, 6, 1);       // Jul 1 current FY
-  const fyEnd   = new Date(fyYear + 1, 5, 30);  // Jun 30 end of current FY
+  const fy  = selectedFyYear !== null ? selectedFyYear
+    : (now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1);
+  const fyStart = new Date(fy, 6, 1);
+  const fyEnd   = new Date(fy + 1, 5, 30);
 
-  if (d < fyStart) return 'row-red';    // expired before this FY = last FY or earlier
-  if (d <= fyEnd)  return 'row-amber';  // expiring within this FY
-  return 'row-green';                   // next FY or beyond
+  if (d < fyStart) return 'row-red';
+  if (d <= fyEnd)  return 'row-amber';
+  return 'row-green';
+}
+
+// ── FY SELECTOR ──
+function buildFyOptions() {
+  const sel = document.getElementById('fySelect');
+  if (!sel) return;
+  const now   = new Date();
+  const curFy = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  sel.innerHTML = '';
+  for (let y = curFy - 5; y <= curFy + 3; y++) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = `FY ${y}/${String(y+1).slice(2)}  (Jul ${y} – Jun ${y+1})${y === curFy ? ' — current' : ''}`;
+    if (y === curFy) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  selectedFyYear = curFy;
+}
+
+function onFyChange() {
+  selectedFyYear = parseInt(document.getElementById('fySelect').value);
+  renderBudget();
 }
 
 function cellDisplay(val) {
@@ -603,30 +694,67 @@ async function generate(which) {
   if (which === 'budget') {
     await generateBudgetExcelJS(exportRows, cols, visibleCols, stamp);
   } else {
-    generateAssetSheetJS(exportRows, cols, visibleCols, stamp);
+    await generateAssetSheetJS(exportRows, cols, visibleCols, stamp);
+    // Show inline validation panel with the generated rows
+    document.getElementById('assetValidation').style.display = '';
+    updateAvColPickers(cols);
+    if (state.avUsers.rows.length) runAssetValidation(cols, exportRows);
   }
 }
 
-// ── ASSET REGISTER — SheetJS ──
-function generateAssetSheetJS(exportRows, cols, visibleCols, stamp) {
-  const wb = XLSX.utils.book_new();
-  const wsData = [
-    visibleCols,
-    ...exportRows.map(r => visibleCols.map(c => {
-      const v = r[c];
-      if (v instanceof Date) return v;
-      return v === undefined || v === null ? '' : v;
-    }))
-  ];
-  const ws = XLSX.utils.aoa_to_sheet(wsData, { cellDates: true });
-  const lastCol = XLSX.utils.encode_col(visibleCols.length - 1);
-  ws['!ref'] = `A1:${lastCol}${exportRows.length + 1}`;
-  const widths = visibleCols.map((c, ci) =>
-    Math.min(50, Math.max(c.length + 2, ...exportRows.map(r => cellDisplay(r[c]).length)))
-  );
-  ws['!cols'] = widths.map(w => ({ wch: w }));
-  XLSX.utils.book_append_sheet(wb, ws, 'Asset Register');
-  XLSX.writeFile(wb, `asset-register-${stamp}.xlsx`);
+// ── ASSET REGISTER — ExcelJS with proper Excel Table ──
+async function generateAssetSheetJS(exportRows, cols, visibleCols, stamp) {
+  const workbook  = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Asset Register');
+
+  // Set column widths
+  worksheet.columns = visibleCols.map(c => ({
+    key:   c,
+    width: Math.min(55, Math.max(c.length + 2, ...exportRows.map(r => cellDisplay(r[c]).length)))
+  }));
+
+  // addTable handles header + data rows — don't add them separately
+  worksheet.addTable({
+    name:      'AssetRegister',
+    ref:       'A1',
+    headerRow: true,
+    totalsRow: false,
+    style: {
+      theme:          'TableStyleMedium2',
+      showRowStripes: true,
+    },
+    columns: visibleCols.map(c => ({ name: c, filterButton: true })),
+    rows:    exportRows.map(row => visibleCols.map(c => {
+      const v = row[c];
+      return v instanceof Date ? v : (v === undefined || v === null ? '' : v);
+    })),
+  });
+
+  // Style header row
+  worksheet.getRow(1).eachCell(cell => {
+    cell.font      = { bold:true };
+    cell.alignment = { vertical:'middle' };
+  });
+  worksheet.getRow(1).height = 18;
+
+  // Format date cells in data rows
+  worksheet.eachRow((row, ri) => {
+    if (ri === 1) return;
+    row.height = 16;
+    row.eachCell(cell => {
+      if (cell.value instanceof Date) cell.numFmt = 'dd/mm/yyyy hh:mm';
+    });
+  });
+
+  worksheet.views = [{ state:'frozen', ySplit:1 }];
+
+  const buf  = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `asset-register-${stamp}.xlsx`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
   toast(`✓ Generated ${exportRows.length} rows`);
 }
 
@@ -709,6 +837,7 @@ async function generateBudgetExcelJS(exportRows, cols, visibleCols, stamp) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
   toast(`✓ Generated ${exportRows.length} rows with colour coding`);
 }
+
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
