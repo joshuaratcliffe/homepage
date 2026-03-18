@@ -838,10 +838,43 @@ async function generateBudgetExcelJS(exportRows, cols, visibleCols, stamp) {
 
 // ── INLINE ASSET VALIDATION ──
 // Normalise a user identifier: lowercase, trim, strip email domain if present
-function normaliseUser(val) {
+// ── SMART USER MATCHING ──
+// Extract name tokens from any format:
+//   "maria.santos"  → ['maria','santos']
+//   "maria.santos@company.com" → ['maria','santos']
+//   "Maria Santos"  → ['maria','santos']
+//   "maria"         → ['maria']
+function nameTokens(val) {
   const s = String(val||'').trim().toLowerCase();
-  // If it looks like an email, use only the part before @
-  return s.includes('@') ? s.split('@')[0] : s;
+  if (!s) return [];
+  // Strip email domain
+  const local = s.includes('@') ? s.split('@')[0] : s;
+  // Split on dot, underscore, dash, space
+  return local.split(/[.\-_\s]+/).filter(Boolean);
+}
+
+// Returns a match confidence score between a register user value and a contact list user value:
+//   2 = strong match (both first+last name tokens match)
+//   1 = weak match (first name only, or single token matches)
+//   0 = no match
+function matchScore(registerVal, contactVal) {
+  const rt = nameTokens(registerVal);
+  const ct = nameTokens(contactVal);
+  if (!rt.length || !ct.length) return 0;
+
+  // Exact normalised match
+  if (rt.join('.') === ct.join('.')) return 2;
+
+  // Count how many tokens appear in the other set
+  const rtSet = new Set(rt);
+  const ctSet = new Set(ct);
+  const commonCount = [...rtSet].filter(t => ctSet.has(t)).length;
+
+  if (commonCount === 0) return 0;
+  // Strong: at least 2 tokens match (first + last), or all register tokens matched
+  if (commonCount >= 2 || (commonCount >= rt.length && rt.length >= 2)) return 2;
+  // Weak: only 1 token matches (first name only)
+  return 1;
 }
 
 function updateAvColPickers(registerCols) {
@@ -882,27 +915,52 @@ function runAssetValidation(registerCols, registerRows) {
   const usersCol     = document.getElementById('avUsersCol').value;
   if (!assetUserCol || !usersCol) return;
 
-  const nameCol = registerCols.find(c => /^name$|device.?name|asset.?name/i.test(c));
+  // Unique register user values (non-blank)
+  const registerVals = [...new Set(
+    registerRows.map(r => String(r[assetUserCol]||'').trim()).filter(Boolean)
+  )];
 
-  // Build register map: normalised username → [device names]
-  const registerMap = new Map();
-  registerRows.forEach(r => {
-    const u = normaliseUser(r[assetUserCol]);
-    if (!u) return;
-    if (!registerMap.has(u)) registerMap.set(u, []);
-    registerMap.get(u).push(nameCol ? String(r[nameCol]||'') : '');
+  // Unique contact list user values (non-blank)
+  const contactVals = [...new Set(
+    state.avUsers.rows.map(r => String(r[usersCol]||'').trim()).filter(Boolean)
+  )];
+
+  // For each contact, find the best matching register value
+  // matched:  score 2 — confident match
+  // fuzzy:    score 1 — first-name-only, needs review
+  // missing:  score 0 — no match found
+  const matched = []; // { contact, register }
+  const fuzzy   = []; // { contact, register } — low confidence
+  const missing = []; // contact string — no match at all
+
+  contactVals.forEach(cv => {
+    let bestScore = 0, bestReg = null;
+    registerVals.forEach(rv => {
+      const s = matchScore(rv, cv);
+      if (s > bestScore) { bestScore = s; bestReg = rv; }
+    });
+    if (bestScore === 2) matched.push({ contact:cv, register:bestReg });
+    else if (bestScore === 1) fuzzy.push({ contact:cv, register:bestReg });
+    else missing.push(cv);
   });
 
-  // Build company user set: normalised
-  const companyUsers = new Set(
-    state.avUsers.rows.map(r => normaliseUser(r[usersCol])).filter(Boolean)
-  );
+  // Extra: register users with no contact match
+  const matchedRegVals = new Set([...matched, ...fuzzy].map(m => m.register));
+  const extra = registerVals.filter(rv => {
+    // Only count as extra if no contact matched to it
+    return ![...matched, ...fuzzy].some(m => m.register === rv);
+  });
 
-  const matched    = [...companyUsers].filter(u => registerMap.has(u));
-  const missing    = [...companyUsers].filter(u => !registerMap.has(u));
-  const extra      = [...registerMap.keys()].filter(u => !companyUsers.has(u));
-  const multi      = [...registerMap.entries()].filter(([u, d]) => companyUsers.has(u) && d.length > 1);
-  const unassigned = registerRows.filter(r => !normaliseUser(r[assetUserCol]));
+  // Multi-device: register values appearing more than once
+  const regValCount = {};
+  registerRows.forEach(r => {
+    const u = String(r[assetUserCol]||'').trim();
+    if (u) regValCount[u] = (regValCount[u]||0) + 1;
+  });
+  const multi = Object.entries(regValCount).filter(([u,c]) => c > 1 && matchedRegVals.has(u));
+
+  // Unassigned
+  const unassigned = registerRows.filter(r => !String(r[assetUserCol]||'').trim());
 
   function section(title, icon, colour, items, renderFn) {
     return `<div class="val-section">
@@ -921,21 +979,29 @@ function runAssetValidation(registerCols, registerRows) {
       <div class="val-tile"><div class="val-tile-num" style="color:var(--green)">${matched.length}</div><div class="val-tile-label">✓ Matched</div></div>
       <div class="val-tile"><div class="val-tile-num" style="color:var(--red)">${missing.length}</div><div class="val-tile-label">Missing from register</div></div>
       <div class="val-tile"><div class="val-tile-num" style="color:var(--amber)">${extra.length}</div><div class="val-tile-label">Extra on register</div></div>
+      <div class="val-tile"><div class="val-tile-num" style="color:#7a5a9b">${fuzzy.length}</div><div class="val-tile-label">Needs review</div></div>
       <div class="val-tile"><div class="val-tile-num" style="color:var(--accent)">${multi.length}</div><div class="val-tile-label">Multiple devices</div></div>
       <div class="val-tile"><div class="val-tile-num" style="color:var(--muted)">${unassigned.length}</div><div class="val-tile-label">Unassigned devices</div></div>
     </div>
-    ${section('Missing from register — in user list but no device found', '🔴', '#842029', missing, u =>
-      `<div class="val-row"><span class="val-row-user">${esc(u)}</span><span class="val-badge" style="background:var(--red-bg);color:var(--red)">No device</span></div>`
+    ${section('Missing from register — no matching device found', '🔴', '#842029', missing, cv =>
+      `<div class="val-row"><span class="val-row-user">${esc(cv)}</span><span class="val-badge" style="background:var(--red-bg);color:var(--red)">No match</span></div>`
     )}
-    ${section('Extra on register — device assigned to unrecognised user', '🟡', '#7d5a00', extra, u => {
-      const devs = registerMap.get(u)||[];
-      return `<div class="val-row"><span class="val-row-user">${esc(u)}</span><span class="val-row-detail">${esc(devs.filter(Boolean).join(', ')||'—')}</span><span class="val-badge" style="background:var(--amber-bg);color:var(--amber)">Not in list</span></div>`;
-    })}
-    ${section('Users with multiple devices', '🔵', '#4a6b9b', multi, ([u, devs]) =>
-      `<div class="val-row"><span class="val-row-user">${esc(u)}</span><span class="val-row-detail">${esc(devs.filter(Boolean).join(', '))}</span><span class="val-badge" style="background:#eef3ff;color:#4a6b9b">${devs.length} devices</span></div>`
+    ${section('Needs review — first name only match, please verify', '🟣', '#7a5a9b', fuzzy, m =>
+      `<div class="val-row">
+        <span class="val-row-user">${esc(m.contact)}</span>
+        <span style="font-size:12px;color:var(--muted);margin:0 8px">→</span>
+        <span class="val-row-detail">${esc(m.register)}</span>
+        <span class="val-badge" style="background:#f3eeff;color:#7a5a9b">Partial match</span>
+      </div>`
     )}
-    ${section('Unassigned devices — on register but no user', '⚪', '#8a847c', unassigned, r =>
-      `<div class="val-row"><span class="val-row-user">${esc(nameCol ? String(r[nameCol]||'—') : 'Unknown device')}</span><span class="val-badge" style="background:var(--surface2);color:var(--muted)">No user</span></div>`
+    ${section('Extra on register — device user not found in contact list', '🟡', '#7d5a00', extra, rv =>
+      `<div class="val-row"><span class="val-row-user">${esc(rv)}</span><span class="val-badge" style="background:var(--amber-bg);color:var(--amber)">Not in list</span></div>`
+    )}
+    ${section('Users with multiple devices', '🔵', '#4a6b9b', multi, ([u, count]) =>
+      `<div class="val-row"><span class="val-row-user">${esc(u)}</span><span class="val-badge" style="background:#eef3ff;color:#4a6b9b">${count} devices</span></div>`
+    )}
+    ${section('Unassigned devices — no user on register', '⚪', '#8a847c', unassigned, r =>
+      `<div class="val-row"><span class="val-row-user" style="color:var(--muted);font-style:italic">No user assigned</span><span class="val-badge" style="background:var(--surface2);color:var(--muted)">Unassigned</span></div>`
     )}`;
 }
 
