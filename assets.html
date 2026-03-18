@@ -438,7 +438,18 @@ function renderBudget() {
   if (!s.rows.length) return;
   document.getElementById('budgetColWrap').style.display = '';
   renderColToggles('budgetColToggles', s.cols, s.hidden, 'budget');
-  document.getElementById('budgetMeta').innerHTML = `<span>${s.rows.length} rows &nbsp;·&nbsp; ${s.cols.length} columns</span>`;
+
+  // Check if a usable Expires column exists with actual dates
+  const expiresCol = s.cols.find(c => c.toLowerCase() === 'expires' || c.toLowerCase().includes('expir'));
+  const hasDates = expiresCol && s.rows.some(r => parseDate(r[expiresCol]) !== null);
+  const metaExtra = !expiresCol
+    ? `<span style="color:var(--red);font-weight:600">⚠ No "Expires" column found — add a column named "Expires" with warranty dates</span>`
+    : !hasDates
+    ? `<span style="color:var(--amber);font-weight:600">⚠ "Expires" column found but contains no recognisable dates — colour coding will not apply</span>`
+    : `<span style="color:var(--green);font-weight:600">✓ Expires column found — colour coding active</span>`;
+
+  document.getElementById('budgetMeta').innerHTML =
+    `<span>${s.rows.length} rows &nbsp;·&nbsp; ${s.cols.length} columns</span>${metaExtra}`;
   renderTable('budgetTable', s.rows, s.cols, s.hidden, s.searchQ, s.sortCol, s.sortDir, 'budget');
 }
 
@@ -579,49 +590,99 @@ function generate(which) {
 
   const visibleCols = cols.filter(c => !s.hidden.has(c));
 
-  // Filter by search if active
   let exportRows = rows;
   if (s.searchQ) {
     const q = s.searchQ.toLowerCase();
-    exportRows = rows.filter(r => visibleCols.some(c => String(r[c]||'').toLowerCase().includes(q)));
+    exportRows = rows.filter(r => visibleCols.some(c => cellDisplay(r[c]).toLowerCase().includes(q)));
   }
 
   const wb = XLSX.utils.book_new();
-  const wsData = [visibleCols, ...exportRows.map(r => visibleCols.map(c => {
-    const v = r[c];
-    // Keep Date objects as dates for Excel, convert others to strings/numbers
-    if (v instanceof Date) return v;
-    return v === '' ? '' : v;
-  }))];
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  // Style for budget mode — colour the rows
+  // Build sheet data — keep Date objects for proper Excel date cells
+  const wsData = [
+    visibleCols,
+    ...exportRows.map(r => visibleCols.map(c => {
+      const v = r[c];
+      if (v instanceof Date) return v;
+      return v === undefined || v === null ? '' : v;
+    }))
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData, { cellDates: true });
+
+  // ── Excel Table (works in free SheetJS) ──
+  const lastCol = XLSX.utils.encode_col(visibleCols.length - 1);
+  const lastRow = exportRows.length + 1;
+  ws['!ref'] = `A1:${lastCol}${lastRow}`;
+
+  // Add as an Excel table for proper header formatting
+  if (!ws['!tables']) ws['!tables'] = [];
+  ws['!tables'].push({
+    name: which === 'asset' ? 'AssetRegister' : 'WarrantyReport',
+    ref:  `A1:${lastCol}${lastRow}`,
+    headerRow: true,
+    totalsRow:  false,
+    tableStyle: { name: 'TableStyleMedium2', showFirstColumn: false, showLastColumn: false, showRowStripes: true },
+  });
+
+  // ── Budget colour coding ──
+  // SheetJS community edition doesn't support cell fill styles directly,
+  // so we add a helper column approach: classify each row and add a "Status" column
   if (which === 'budget') {
-    const expiresCol = cols.find(c => c.toLowerCase() === 'expires' || c.toLowerCase().includes('expir'));
-    if (expiresCol) {
-      const colIdx = visibleCols.indexOf(expiresCol);
+    const expiresColName = cols.find(c => c.toLowerCase() === 'expires' || c.toLowerCase().includes('expir'));
+    const statusColIdx = visibleCols.length; // append after visible cols
+
+    if (expiresColName) {
+      // Add Status column header
+      const statusCell = XLSX.utils.encode_cell({ r:0, c:statusColIdx });
+      ws[statusCell] = { v:'Warranty Status', t:'s' };
+
+      let anyClassified = false;
       exportRows.forEach((row, ri) => {
         const cls = warrantyClass(row, cols);
-        if (!cls) return;
-        const fgb = cls==='row-red' ? 'FFF8D7DA' : cls==='row-amber' ? 'FFFFF3CD' : 'FFD8F3DC';
-        visibleCols.forEach((c, ci) => {
-          const cellRef = XLSX.utils.encode_cell({ r: ri+1, c: ci });
-          if (!ws[cellRef]) ws[cellRef] = { v: row[c]||'', t:'s' };
-          ws[cellRef].s = { fill: { fgColor: { rgb: fgb.slice(2) }, patternType:'solid' } };
-        });
+        const label = cls === 'row-red' ? '🔴 Expired (last FY or earlier)'
+                    : cls === 'row-amber' ? '🟡 Expiring this FY'
+                    : cls === 'row-green' ? '🟢 Expiring next FY+'
+                    : '⚪ No date';
+        if (cls) anyClassified = true;
+        const ref = XLSX.utils.encode_cell({ r: ri+1, c: statusColIdx });
+        ws[ref] = { v: label, t:'s' };
       });
+
+      // Update sheet range to include status column
+      const newLastCol = XLSX.utils.encode_col(statusColIdx);
+      ws['!ref'] = `A1:${newLastCol}${lastRow}`;
+      if (ws['!tables'] && ws['!tables'][0]) {
+        ws['!tables'][0].ref = `A1:${newLastCol}${lastRow}`;
+      }
+
+      if (!anyClassified) {
+        toast('⚠ No warranty dates found in the Expires column — check your data');
+      }
+    } else {
+      toast('⚠ No "Expires" column found — colour coding skipped');
     }
   }
 
   // Auto column widths
-  const widths = visibleCols.map(c => Math.min(40, Math.max(c.length+2, ...exportRows.map(r => String(r[c]||'').length))));
+  const allCols = which === 'budget'
+    ? [...visibleCols, 'Warranty Status']
+    : visibleCols;
+  const widths = allCols.map((c, ci) => {
+    const headerLen = c.length + 2;
+    const maxData = exportRows.reduce((max, r) => {
+      const v = ci < visibleCols.length ? cellDisplay(r[visibleCols[ci]]) : '';
+      return Math.max(max, v.length);
+    }, 0);
+    return Math.min(50, Math.max(headerLen, maxData));
+  });
   ws['!cols'] = widths.map(w => ({ wch: w }));
 
-  XLSX.utils.book_append_sheet(wb, ws, which==='asset'?'Asset Register':'Warranty Report');
+  XLSX.utils.book_append_sheet(wb, ws, which === 'asset' ? 'Asset Register' : 'Warranty Report');
 
   const d = new Date();
-  const stamp = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  XLSX.writeFile(wb, `${which==='asset'?'asset-register':'warranty-report'}-${stamp}.xlsx`);
+  const stamp = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  XLSX.writeFile(wb, `${which === 'asset' ? 'asset-register' : 'warranty-report'}-${stamp}.xlsx`);
   toast(`✓ Generated ${exportRows.length} rows`);
 }
 
