@@ -349,7 +349,7 @@ function loadFile(file, which) {
       const isCSV = file.name.toLowerCase().endsWith('.csv');
 
       const wb = isCSV
-        ? XLSX.read(e.target.result, { type:'string', cellDates:true, raw:true })
+        ? XLSX.read(e.target.result.replace(/^\uFEFF/, ''), { type:'string', cellDates:true, raw:true })
         : XLSX.read(new Uint8Array(e.target.result), { type:'array', cellDates:true, raw:true });
 
       const ws = wb.Sheets[wb.SheetNames[0]];
@@ -473,17 +473,13 @@ function renderAsset() {
   document.getElementById('assetColWrap').style.display = '';
 
   let { rows, cols, matched, total, error } = mergeWithLookup(s.rows, s.cols, s.lookupRows, s.lookupCols);
-  // Update cols if lookup added new ones
   if (cols.length > s.cols.length) {
     const newCols = cols.filter(c => !s.cols.includes(c));
-    newCols.forEach(c => { if (!s.hidden.has(c)) {} }); // keep existing hidden state
     s.cols = cols;
   }
 
-  // Column toggles
   renderColToggles('assetColToggles', s.cols, s.hidden, 'asset');
 
-  // Meta
   let metaHtml = `<span>${rows.length} rows &nbsp;·&nbsp; ${s.cols.length} columns</span>`;
   if (s.lookupRows.length) {
     metaHtml += matched !== undefined
@@ -491,6 +487,11 @@ function renderAsset() {
       : `<span class="lookup-badge badge-warn">${error||'Lookup error'}</span>`;
   }
   document.getElementById('assetMeta').innerHTML = metaHtml;
+
+  // Show validation panel as soon as data is loaded
+  document.getElementById('assetValidation').style.display = '';
+  updateAvColPickers(cols);
+  if (state.avUsers.rows.length) runAssetValidation(cols, rows);
 
   renderTable('assetTable', rows, s.cols, s.hidden, s.searchQ, s.sortCol, s.sortDir, null);
 }
@@ -695,10 +696,6 @@ async function generate(which) {
     await generateBudgetExcelJS(exportRows, cols, visibleCols, stamp);
   } else {
     await generateAssetSheetJS(exportRows, cols, visibleCols, stamp);
-    // Show inline validation panel with the generated rows
-    document.getElementById('assetValidation').style.display = '';
-    updateAvColPickers(cols);
-    if (state.avUsers.rows.length) runAssetValidation(cols, exportRows);
   }
 }
 
@@ -838,6 +835,109 @@ async function generateBudgetExcelJS(exportRows, cols, visibleCols, stamp) {
   toast(`✓ Generated ${exportRows.length} rows with colour coding`);
 }
 
+
+// ── INLINE ASSET VALIDATION ──
+// Normalise a user identifier: lowercase, trim, strip email domain if present
+function normaliseUser(val) {
+  const s = String(val||'').trim().toLowerCase();
+  // If it looks like an email, use only the part before @
+  return s.includes('@') ? s.split('@')[0] : s;
+}
+
+function updateAvColPickers(registerCols) {
+  const asel = document.getElementById('avAssetUserCol');
+  const usel = document.getElementById('avUsersCol');
+  if (!asel || !usel) return;
+  const prevA = asel.value, prevU = usel.value;
+
+  asel.innerHTML = (registerCols||[]).map(c =>
+    `<option value="${esc(c)}"${c===prevA?' selected':''}>${esc(c)}</option>`).join('');
+  usel.innerHTML = state.avUsers.cols.map(c =>
+    `<option value="${esc(c)}"${c===prevU?' selected':''}>${esc(c)}</option>`).join('');
+
+  // Auto-pick best user column
+  if (!prevA) {
+    const guess = (registerCols||[]).find(c => /^user$|username|email|assigned/i.test(c));
+    if (guess) asel.value = guess;
+  }
+  if (!prevU) {
+    const guess = state.avUsers.cols.find(c => /^user$|username|email|name/i.test(c));
+    if (guess) usel.value = guess;
+  }
+
+  const show = (registerCols||[]).length && state.avUsers.cols.length;
+  document.getElementById('assetValColPicker').style.display = show ? '' : 'none';
+}
+
+function runAssetValidation(registerCols, registerRows) {
+  if (!registerCols) {
+    const s = state.asset;
+    const merged = mergeWithLookup(s.rows, s.cols, s.lookupRows||[], s.lookupCols||[]);
+    registerCols = merged.cols;
+    registerRows = merged.rows;
+  }
+  if (!registerRows || !registerRows.length || !state.avUsers.rows.length) return;
+
+  const assetUserCol = document.getElementById('avAssetUserCol').value;
+  const usersCol     = document.getElementById('avUsersCol').value;
+  if (!assetUserCol || !usersCol) return;
+
+  const nameCol = registerCols.find(c => /^name$|device.?name|asset.?name/i.test(c));
+
+  // Build register map: normalised username → [device names]
+  const registerMap = new Map();
+  registerRows.forEach(r => {
+    const u = normaliseUser(r[assetUserCol]);
+    if (!u) return;
+    if (!registerMap.has(u)) registerMap.set(u, []);
+    registerMap.get(u).push(nameCol ? String(r[nameCol]||'') : '');
+  });
+
+  // Build company user set: normalised
+  const companyUsers = new Set(
+    state.avUsers.rows.map(r => normaliseUser(r[usersCol])).filter(Boolean)
+  );
+
+  const matched    = [...companyUsers].filter(u => registerMap.has(u));
+  const missing    = [...companyUsers].filter(u => !registerMap.has(u));
+  const extra      = [...registerMap.keys()].filter(u => !companyUsers.has(u));
+  const multi      = [...registerMap.entries()].filter(([u, d]) => companyUsers.has(u) && d.length > 1);
+  const unassigned = registerRows.filter(r => !normaliseUser(r[assetUserCol]));
+
+  function section(title, icon, colour, items, renderFn) {
+    return `<div class="val-section">
+      <div class="val-section-header" style="background:${colour}18;color:${colour}">
+        ${icon} ${title}
+        <span style="margin-left:auto;font-size:11px;background:${colour}22;padding:2px 8px;border-radius:20px">${items.length}</span>
+      </div>
+      <div class="val-section-body">
+        ${items.length ? items.map(renderFn).join('') : '<div class="val-empty">None — all clear ✓</div>'}
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('assetValResults').innerHTML = `
+    <div class="val-summary">
+      <div class="val-tile"><div class="val-tile-num" style="color:var(--green)">${matched.length}</div><div class="val-tile-label">✓ Matched</div></div>
+      <div class="val-tile"><div class="val-tile-num" style="color:var(--red)">${missing.length}</div><div class="val-tile-label">Missing from register</div></div>
+      <div class="val-tile"><div class="val-tile-num" style="color:var(--amber)">${extra.length}</div><div class="val-tile-label">Extra on register</div></div>
+      <div class="val-tile"><div class="val-tile-num" style="color:var(--accent)">${multi.length}</div><div class="val-tile-label">Multiple devices</div></div>
+      <div class="val-tile"><div class="val-tile-num" style="color:var(--muted)">${unassigned.length}</div><div class="val-tile-label">Unassigned devices</div></div>
+    </div>
+    ${section('Missing from register — in user list but no device found', '🔴', '#842029', missing, u =>
+      `<div class="val-row"><span class="val-row-user">${esc(u)}</span><span class="val-badge" style="background:var(--red-bg);color:var(--red)">No device</span></div>`
+    )}
+    ${section('Extra on register — device assigned to unrecognised user', '🟡', '#7d5a00', extra, u => {
+      const devs = registerMap.get(u)||[];
+      return `<div class="val-row"><span class="val-row-user">${esc(u)}</span><span class="val-row-detail">${esc(devs.filter(Boolean).join(', ')||'—')}</span><span class="val-badge" style="background:var(--amber-bg);color:var(--amber)">Not in list</span></div>`;
+    })}
+    ${section('Users with multiple devices', '🔵', '#4a6b9b', multi, ([u, devs]) =>
+      `<div class="val-row"><span class="val-row-user">${esc(u)}</span><span class="val-row-detail">${esc(devs.filter(Boolean).join(', '))}</span><span class="val-badge" style="background:#eef3ff;color:#4a6b9b">${devs.length} devices</span></div>`
+    )}
+    ${section('Unassigned devices — on register but no user', '⚪', '#8a847c', unassigned, r =>
+      `<div class="val-row"><span class="val-row-user">${esc(nameCol ? String(r[nameCol]||'—') : 'Unknown device')}</span><span class="val-badge" style="background:var(--surface2);color:var(--muted)">No user</span></div>`
+    )}`;
+}
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
