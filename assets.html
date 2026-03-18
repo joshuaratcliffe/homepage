@@ -7,6 +7,7 @@
 <title>Asset Register</title>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <style>
 :root {
   --bg:#f5f0eb; --bg2:#ede8e0; --surface:#fff; --surface2:#faf7f4;
@@ -580,7 +581,7 @@ function onSearch(q, which) {
 }
 
 // ── GENERATE EXCEL ──
-function generate(which) {
+async function generate(which) {
   const s = which === 'asset' ? state.asset : state.budget;
   if (!s.rows.length) { toast('No data to export'); return; }
 
@@ -596,9 +597,19 @@ function generate(which) {
     exportRows = rows.filter(r => visibleCols.some(c => cellDisplay(r[c]).toLowerCase().includes(q)));
   }
 
-  const wb = XLSX.utils.book_new();
+  const d = new Date();
+  const stamp = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 
-  // Build sheet data — keep Date objects for proper Excel date cells
+  if (which === 'budget') {
+    await generateBudgetExcelJS(exportRows, cols, visibleCols, stamp);
+  } else {
+    generateAssetSheetJS(exportRows, cols, visibleCols, stamp);
+  }
+}
+
+// ── ASSET REGISTER — SheetJS ──
+function generateAssetSheetJS(exportRows, cols, visibleCols, stamp) {
+  const wb = XLSX.utils.book_new();
   const wsData = [
     visibleCols,
     ...exportRows.map(r => visibleCols.map(c => {
@@ -607,83 +618,96 @@ function generate(which) {
       return v === undefined || v === null ? '' : v;
     }))
   ];
-
   const ws = XLSX.utils.aoa_to_sheet(wsData, { cellDates: true });
-
-  // ── Excel Table (works in free SheetJS) ──
   const lastCol = XLSX.utils.encode_col(visibleCols.length - 1);
-  const lastRow = exportRows.length + 1;
-  ws['!ref'] = `A1:${lastCol}${lastRow}`;
-
-  // Add as an Excel table for proper header formatting
-  if (!ws['!tables']) ws['!tables'] = [];
-  ws['!tables'].push({
-    name: which === 'asset' ? 'AssetRegister' : 'WarrantyReport',
-    ref:  `A1:${lastCol}${lastRow}`,
-    headerRow: true,
-    totalsRow:  false,
-    tableStyle: { name: 'TableStyleMedium2', showFirstColumn: false, showLastColumn: false, showRowStripes: true },
-  });
-
-  // ── Budget colour coding ──
-  // SheetJS community edition doesn't support cell fill styles directly,
-  // so we add a helper column approach: classify each row and add a "Status" column
-  if (which === 'budget') {
-    const expiresColName = cols.find(c => c.toLowerCase() === 'expires' || c.toLowerCase().includes('expir'));
-    const statusColIdx = visibleCols.length; // append after visible cols
-
-    if (expiresColName) {
-      // Add Status column header
-      const statusCell = XLSX.utils.encode_cell({ r:0, c:statusColIdx });
-      ws[statusCell] = { v:'Warranty Status', t:'s' };
-
-      let anyClassified = false;
-      exportRows.forEach((row, ri) => {
-        const cls = warrantyClass(row, cols);
-        const label = cls === 'row-red' ? '🔴 Expired (last FY or earlier)'
-                    : cls === 'row-amber' ? '🟡 Expiring this FY'
-                    : cls === 'row-green' ? '🟢 Expiring next FY+'
-                    : '⚪ No date';
-        if (cls) anyClassified = true;
-        const ref = XLSX.utils.encode_cell({ r: ri+1, c: statusColIdx });
-        ws[ref] = { v: label, t:'s' };
-      });
-
-      // Update sheet range to include status column
-      const newLastCol = XLSX.utils.encode_col(statusColIdx);
-      ws['!ref'] = `A1:${newLastCol}${lastRow}`;
-      if (ws['!tables'] && ws['!tables'][0]) {
-        ws['!tables'][0].ref = `A1:${newLastCol}${lastRow}`;
-      }
-
-      if (!anyClassified) {
-        toast('⚠ No warranty dates found in the Expires column — check your data');
-      }
-    } else {
-      toast('⚠ No "Expires" column found — colour coding skipped');
-    }
-  }
-
-  // Auto column widths
-  const allCols = which === 'budget'
-    ? [...visibleCols, 'Warranty Status']
-    : visibleCols;
-  const widths = allCols.map((c, ci) => {
-    const headerLen = c.length + 2;
-    const maxData = exportRows.reduce((max, r) => {
-      const v = ci < visibleCols.length ? cellDisplay(r[visibleCols[ci]]) : '';
-      return Math.max(max, v.length);
-    }, 0);
-    return Math.min(50, Math.max(headerLen, maxData));
-  });
+  ws['!ref'] = `A1:${lastCol}${exportRows.length + 1}`;
+  const widths = visibleCols.map((c, ci) =>
+    Math.min(50, Math.max(c.length + 2, ...exportRows.map(r => cellDisplay(r[c]).length)))
+  );
   ws['!cols'] = widths.map(w => ({ wch: w }));
-
-  XLSX.utils.book_append_sheet(wb, ws, which === 'asset' ? 'Asset Register' : 'Warranty Report');
-
-  const d = new Date();
-  const stamp = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  XLSX.writeFile(wb, `${which === 'asset' ? 'asset-register' : 'warranty-report'}-${stamp}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, ws, 'Asset Register');
+  XLSX.writeFile(wb, `asset-register-${stamp}.xlsx`);
   toast(`✓ Generated ${exportRows.length} rows`);
+}
+
+// ── BUDGET REPORT — ExcelJS (supports real cell colours) ──
+async function generateBudgetExcelJS(exportRows, cols, visibleCols, stamp) {
+  const expiresColName = cols.find(c => c.toLowerCase() === 'expires' || c.toLowerCase().includes('expir'));
+
+  const workbook  = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Warranty Report');
+
+  // Header row
+  worksheet.columns = visibleCols.map(c => ({
+    header: c,
+    key:    c,
+    width:  Math.min(50, Math.max(c.length + 2, ...exportRows.map(r => cellDisplay(r[c]).length)))
+  }));
+
+  // Style header row
+  worksheet.getRow(1).eachCell(cell => {
+    cell.fill   = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFE8E0D8' } };
+    cell.font   = { bold:true, color:{ argb:'FF1A1714' } };
+    cell.border = { bottom:{ style:'medium', color:{ argb:'FFCFC8BE' } } };
+    cell.alignment = { vertical:'middle', wrapText: false };
+  });
+  worksheet.getRow(1).height = 18;
+
+  // Colour map
+  const COLOURS = {
+    'row-red':   { argb:'FFF8D7DA', fontArgb:'FF58151A' },
+    'row-amber': { argb:'FFFFF3CD', fontArgb:'FF664D03' },
+    'row-green': { argb:'FFD8F3DC', fontArgb:'FF0A3622' },
+    '':          { argb:null,       fontArgb:null        },
+  };
+
+  // Data rows
+  exportRows.forEach((row, ri) => {
+    const cls     = expiresColName ? warrantyClass(row, cols) : '';
+    const colours = COLOURS[cls] || COLOURS[''];
+
+    const rowData = {};
+    visibleCols.forEach(c => {
+      const v = row[c];
+      rowData[c] = v instanceof Date ? v : (v === undefined || v === null ? '' : v);
+    });
+
+    const exRow = worksheet.addRow(rowData);
+    exRow.height = 16;
+
+    exRow.eachCell({ includeEmpty: true }, cell => {
+      // Alternate row shading for uncoloured rows
+      if (colours.argb) {
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb: colours.argb } };
+        cell.font = { color:{ argb: colours.fontArgb } };
+      } else if (ri % 2 === 1) {
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFAF7F4' } };
+      }
+      cell.border = { bottom:{ style:'thin', color:{ argb:'FFE0D9D0' } } };
+
+      // Format date cells
+      if (cell.value instanceof Date) {
+        cell.numFmt = 'dd/mm/yyyy';
+      }
+    });
+  });
+
+  // Freeze header row
+  worksheet.views = [{ state:'frozen', ySplit:1 }];
+
+  // Auto filter on header row
+  worksheet.autoFilter = { from:'A1', to:{ row:1, column:visibleCols.length } };
+
+  // Generate and download
+  const buf  = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `warranty-report-${stamp}.xlsx`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast(`✓ Generated ${exportRows.length} rows with colour coding`);
 }
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
