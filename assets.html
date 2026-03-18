@@ -295,19 +295,37 @@ function loadFile(file, which) {
   reader.onload = e => {
     try {
       let rows, cols;
-      if (file.name.endsWith('.csv')) {
-        const wb = XLSX.read(e.target.result, { type:'string', raw:false, cellDates:true });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(ws, { defval:'', raw:false });
-        cols = data.length ? Object.keys(data[0]) : [];
-        rows = data;
-      } else {
-        const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array', cellDates:true, raw:false });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(ws, { defval:'', raw:false });
-        cols = data.length ? Object.keys(data[0]) : [];
-        rows = data;
-      }
+      const isCSV = file.name.toLowerCase().endsWith('.csv');
+
+      const wb = isCSV
+        ? XLSX.read(e.target.result, { type:'string', cellDates:true, raw:true })
+        : XLSX.read(new Uint8Array(e.target.result), { type:'array', cellDates:true, raw:true });
+
+      const ws = wb.Sheets[wb.SheetNames[0]];
+
+      // Use sheet_to_json with header row to get raw values
+      // Then do a second pass to format values nicely but keep dates as Date objects
+      const raw = XLSX.utils.sheet_to_json(ws, { defval:'', raw:true, cellDates:true });
+      const fmt = XLSX.utils.sheet_to_json(ws, { defval:'', raw:false, cellDates:false });
+
+      cols = raw.length ? Object.keys(raw[0]) : [];
+
+      // Merge: use formatted string for display but track Date objects separately
+      rows = raw.map((rawRow, i) => {
+        const fmtRow = fmt[i] || {};
+        const merged = {};
+        cols.forEach(c => {
+          const rv = rawRow[c];
+          // If SheetJS parsed it as a Date, store the Date object
+          if (rv instanceof Date) {
+            merged[c] = rv;
+          } else {
+            // Use formatted version for display (nicer numbers/strings)
+            merged[c] = fmtRow[c] !== undefined ? fmtRow[c] : rv;
+          }
+        });
+        return merged;
+      });
 
       if (which === 'main') {
         state.asset.rows = rows; state.asset.cols = cols;
@@ -325,9 +343,9 @@ function loadFile(file, which) {
         renderBudget();
       }
       toast('✓ Loaded ' + file.name);
-    } catch(err) { toast('✗ Could not read file: ' + err.message); }
+    } catch(err) { toast('✗ Could not read file: ' + err.message); console.error(err); }
   };
-  if (file.name.endsWith('.csv')) reader.readAsText(file);
+  if (file.name.toLowerCase().endsWith('.csv')) reader.readAsText(file);
   else reader.readAsArrayBuffer(file);
 }
 
@@ -425,36 +443,50 @@ function renderBudget() {
 }
 
 // ── WARRANTY CLASSIFICATION ──
+function parseDate(val) {
+  if (!val && val !== 0) return null;
+  // Already a Date object (from SheetJS cellDates:true)
+  if (val instanceof Date) return isNaN(val) ? null : val;
+  // Excel serial number (SheetJS raw:true gives these for non-cellDates)
+  if (typeof val === 'number') {
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+    return isNaN(d) ? null : d;
+  }
+  const str = String(val).trim();
+  if (!str || str === 'N/A' || str === '-' || str === '') return null;
+  // ISO format: 2025-03-15 or 2025-03-15T00:00:00.000Z
+  const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return new Date(+iso[1], +iso[2]-1, +iso[3]);
+  // DD/MM/YYYY or DD-MM-YYYY (Australian format)
+  const dmy = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if (dmy) return new Date(+dmy[3], +dmy[2]-1, +dmy[1]);
+  // Try native parse as last resort
+  const d = new Date(str);
+  return isNaN(d) ? null : d;
+}
+
 function warrantyClass(row, cols) {
   const expiresCol = cols.find(c => c.toLowerCase() === 'expires' || c.toLowerCase().includes('expir'));
   if (!expiresCol) return '';
-  const val = row[expiresCol];
-  if (!val || val === '' || val === 'N/A' || val === '-') return '';
+  const d = parseDate(row[expiresCol]);
+  if (!d) return '';
 
-  // Australian financial year: Jul 1 – Jun 30
-  const now      = new Date();
-  const fyStart  = new Date(now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear()-1, 6, 1); // Jul 1
-  const fyEnd    = new Date(fyStart.getFullYear()+1, 5, 30); // Jun 30 next year
-  const lastFyEnd = new Date(fyStart.getFullYear(), 5, 30);  // Jun 30 this year start
+  // Australian FY: Jul 1 – Jun 30
+  const now = new Date();
+  const fyYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  const fyStart = new Date(fyYear, 6, 1);       // Jul 1 current FY
+  const fyEnd   = new Date(fyYear + 1, 5, 30);  // Jun 30 end of current FY
 
-  let d;
-  // Try parsing various date formats
+  if (d < fyStart) return 'row-red';    // expired before this FY = last FY or earlier
+  if (d <= fyEnd)  return 'row-amber';  // expiring within this FY
+  return 'row-green';                   // next FY or beyond
+}
+
+function cellDisplay(val) {
   if (val instanceof Date) {
-    d = val;
-  } else {
-    const str = String(val).trim();
-    // Try DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, MM/DD/YYYY etc.
-    const dmy = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-    const ymd = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-    if (dmy) d = new Date(+dmy[3], +dmy[2]-1, +dmy[1]);
-    else if (ymd) d = new Date(+ymd[1], +ymd[2]-1, +ymd[3]);
-    else d = new Date(str);
+    return val.toLocaleDateString('en-AU', { day:'2-digit', month:'2-digit', year:'numeric' });
   }
-
-  if (isNaN(d)) return '';
-  if (d < fyStart)  return 'row-red';   // expired before this FY started (last FY or earlier)
-  if (d <= fyEnd)   return 'row-amber'; // expiring this FY
-  return 'row-green';                   // future
+  return String(val == null ? '' : val);
 }
 
 // ── TABLE RENDER ──
@@ -466,18 +498,19 @@ function renderTable(tableId, allRows, cols, hidden, searchQ, sortCol, sortDir, 
   let rows = allRows;
   if (searchQ) {
     const q = searchQ.toLowerCase();
-    rows = rows.filter(r => visibleCols.some(c => String(r[c]||'').toLowerCase().includes(q)));
+    rows = rows.filter(r => visibleCols.some(c => cellDisplay(r[c]).toLowerCase().includes(q)));
   }
 
   // Sort
   if (sortCol) {
     rows = [...rows].sort((a,b) => {
-      const av = String(a[sortCol]||'').toLowerCase();
-      const bv = String(b[sortCol]||'').toLowerCase();
-      // Try numeric sort
-      const an = parseFloat(av), bn = parseFloat(bv);
+      const av = a[sortCol], bv = b[sortCol];
+      // Date sort
+      if (av instanceof Date && bv instanceof Date) return (av-bv)*sortDir;
+      const as = cellDisplay(av).toLowerCase(), bs = cellDisplay(bv).toLowerCase();
+      const an = parseFloat(as), bn = parseFloat(bs);
       if (!isNaN(an) && !isNaN(bn)) return (an-bn)*sortDir;
-      return av.localeCompare(bv)*sortDir;
+      return as.localeCompare(bs)*sortDir;
     });
   }
 
@@ -491,7 +524,10 @@ function renderTable(tableId, allRows, cols, hidden, searchQ, sortCol, sortDir, 
   // Body
   table.querySelector('tbody').innerHTML = rows.map(row => {
     const cls = budgetMode ? warrantyClass(row, cols) : '';
-    const cells = visibleCols.map(c => `<td title="${esc(String(row[c]||''))}">${esc(String(row[c]||''))}</td>`).join('');
+    const cells = visibleCols.map(c => {
+      const disp = cellDisplay(row[c]);
+      return `<td title="${esc(disp)}">${esc(disp)}</td>`;
+    }).join('');
     return `<tr class="${cls}">${cells}</tr>`;
   }).join('');
 }
@@ -551,7 +587,12 @@ function generate(which) {
   }
 
   const wb = XLSX.utils.book_new();
-  const wsData = [visibleCols, ...exportRows.map(r => visibleCols.map(c => r[c]||''))];
+  const wsData = [visibleCols, ...exportRows.map(r => visibleCols.map(c => {
+    const v = r[c];
+    // Keep Date objects as dates for Excel, convert others to strings/numbers
+    if (v instanceof Date) return v;
+    return v === '' ? '' : v;
+  }))];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
 
   // Style for budget mode — colour the rows
