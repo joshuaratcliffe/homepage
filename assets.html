@@ -849,12 +849,97 @@ function normReg(val) {
   return s.includes('@') ? s.split('@')[0] : s;
 }
 
-// Build a normalised key from first + last name columns: "firstname.lastname"
-function normContact(first, last) {
-  const f = String(first||'').trim().toLowerCase();
-  const l = String(last||'').trim().toLowerCase();
-  if (f && l) return `${f}.${l}`;
-  return f || l;
+// Common nickname → canonical name mappings
+const NICKNAMES = {
+  'tony':'antonios', 'antonios':'tony', 'ant':'anthony', 'anthony':'ant',
+  'nat':'nathaniel', 'nathaniel':'nat', 'nate':'nathaniel', 'nathaniel':'nate',
+  'alex':'alexander', 'alexander':'alex', 'al':'albert',
+  'bob':'robert', 'rob':'robert', 'bobby':'robert',
+  'bill':'william', 'will':'william', 'billy':'william',
+  'chris':'christopher', 'christopher':'chris',
+  'dan':'daniel', 'danny':'daniel',
+  'dave':'david', 'davey':'david',
+  'ed':'edward', 'eddie':'edward', 'ned':'edward',
+  'fred':'frederick', 'freddie':'frederick',
+  'greg':'gregory', 'gregory':'greg',
+  'jake':'jacob', 'jack':'john',
+  'jim':'james', 'jimmy':'james', 'jamie':'james',
+  'joe':'joseph', 'joey':'joseph',
+  'jon':'jonathan', 'johnny':'john',
+  'kate':'katherine', 'kath':'katherine', 'kathy':'katherine', 'katie':'katherine',
+  'ken':'kenneth', 'kenny':'kenneth',
+  'liz':'elizabeth', 'beth':'elizabeth', 'betty':'elizabeth', 'lisa':'elizabeth',
+  'matt':'matthew', 'matty':'matthew',
+  'max':'maximilian', 'maximilian':'max',
+  'mick':'michael', 'mike':'michael', 'mickey':'michael',
+  'nick':'nicholas', 'nic':'nicholas',
+  'pat':'patrick', 'paddy':'patrick',
+  'pete':'peter', 'petey':'peter',
+  'phil':'philip', 'pip':'philip',
+  'ray':'raymond', 'raymond':'ray',
+  'rick':'richard', 'rich':'richard', 'dick':'richard',
+  'ron':'ronald', 'ronnie':'ronald',
+  'sam':'samuel', 'sammy':'samuel',
+  'sandy':'alexandra', 'sandra':'alexandra',
+  'stu':'stewart', 'stew':'stewart',
+  'sue':'susan', 'susie':'susan',
+  'ted':'theodore', 'theo':'theodore',
+  'tim':'timothy', 'timmy':'timothy',
+  'tom':'thomas', 'tommy':'thomas',
+  'vic':'victoria', 'vicky':'victoria',
+  'wal':'walter', 'wally':'walter',
+  'wendy':'gwendolyn',
+  'zach':'zachary', 'zak':'zachary',
+};
+
+// Given a first name, return all plausible variants (the name itself + nickname aliases)
+function firstNameVariants(name) {
+  const n = name.toLowerCase().trim();
+  const variants = new Set([n]);
+  if (NICKNAMES[n]) variants.add(NICKNAMES[n]);
+  // Also add any nickname that maps TO this name
+  Object.entries(NICKNAMES).forEach(([nick, full]) => {
+    if (full === n) variants.add(nick);
+  });
+  return [...variants];
+}
+
+// Generate all candidate register keys for a contact row.
+// Handles: single first name, multi-word first names joined, and nickname variants.
+// Returns array of candidate strings that might appear in the register.
+function contactCandidates(rawFirst, rawLast) {
+  const last  = String(rawLast||'').trim().toLowerCase();
+  const first = String(rawFirst||'').trim().toLowerCase();
+  if (!first && !last) return [];
+
+  // Split first name on spaces (e.g. "Maria Jose" → ['maria','jose'])
+  const firstParts = first.split(/\s+/).filter(Boolean);
+
+  const candidates = new Set();
+
+  // Strategy 1: first token only + last  →  "maria.santos"
+  if (firstParts.length && last) {
+    const firstVariants = firstNameVariants(firstParts[0]);
+    firstVariants.forEach(v => candidates.add(`${v}.${last}`));
+  }
+
+  // Strategy 2: all first parts joined + last  →  "mariajose.santos"
+  if (firstParts.length > 1 && last) {
+    const joined = firstParts.join('');
+    candidates.add(`${joined}.${last}`);
+    // Also joined with dot: "maria.jose.santos" — less common but possible
+    candidates.add(`${firstParts.join('.')}.${last}`);
+    // Nickname on joined first part
+    firstNameVariants(joined).forEach(v => candidates.add(`${v}.${last}`));
+  }
+
+  // Strategy 3: no last name
+  if (first && !last) firstNameVariants(firstParts[0]).forEach(v => candidates.add(v));
+
+  // Strategy 4: prefix match — register might be truncated (e.g. "nat" for "nathaniel")
+  // We add these as low-priority candidates (handled separately in matching)
+
+  return [...candidates];
 }
 
 function updateAvColPickers(registerCols) {
@@ -872,7 +957,6 @@ function updateAvColPickers(registerCols) {
   lsel.innerHTML = state.avUsers.cols.map(c =>
     `<option value="${esc(c)}"${c===prevL?' selected':''}>${esc(c)}</option>`).join('');
 
-  // Auto-pick columns
   if (!prevA) {
     const g = (registerCols||[]).find(c => /^user$|username|email|assigned/i.test(c));
     if (g) asel.value = g;
@@ -904,34 +988,68 @@ function runAssetValidation(registerCols, registerRows) {
   const lastCol      = document.getElementById('avUsersLastCol').value;
   if (!assetUserCol || !firstCol || !lastCol) return;
 
-  // Build a set of normalised register usernames
-  const registerSet = new Set(
+  // Build normalised register set + prefix list for truncation matching
+  const registerVals = [...new Set(
     registerRows.map(r => normReg(r[assetUserCol])).filter(Boolean)
-  );
+  )];
+  const registerSet = new Set(registerVals);
 
-  // Build a set of normalised contact keys (firstname.lastname)
-  // Also keep original display values for output
-  const contactMap = new Map(); // normKey → original display string
+  // For each contact, try all candidates and also prefix matching as fallback
+  const matched = []; // { disp, matchedKey }
+  const missing = []; // { disp }
+
+  // Track which register vals were matched so we can find extras
+  const matchedRegKeys = new Set();
+
   state.avUsers.rows.forEach(r => {
-    const key  = normContact(r[firstCol], r[lastCol]);
     const disp = [String(r[firstCol]||'').trim(), String(r[lastCol]||'').trim()].filter(Boolean).join(' ');
-    if (key) contactMap.set(key, disp);
+    const candidates = contactCandidates(r[firstCol], r[lastCol]);
+
+    // Try exact candidate match first
+    let matchedKey = candidates.find(c => registerSet.has(c));
+
+    // Fallback: prefix match — register value starts with a candidate token
+    // e.g. register "nat.smith", candidate "nathaniel.smith" — the first-name part of
+    // the candidate starts with the register's first-name part, or vice versa
+    if (!matchedKey) {
+      const last = String(r[lastCol]||'').trim().toLowerCase();
+      for (const rv of registerVals) {
+        const [rvFirst, ...rvRest] = rv.split('.');
+        const rvLast = rvRest.join('.');
+        if (rvLast !== last) continue; // last name must match exactly
+        // Check if either name starts with the other
+        const firstParts = String(r[firstCol]||'').trim().toLowerCase().split(/\s+/);
+        const contactFirst = firstParts[0] || '';
+        if (
+          contactFirst.startsWith(rvFirst) ||
+          rvFirst.startsWith(contactFirst) ||
+          // Also check nickname variants
+          firstNameVariants(contactFirst).some(v => v.startsWith(rvFirst) || rvFirst.startsWith(v))
+        ) {
+          matchedKey = rv;
+          break;
+        }
+      }
+    }
+
+    if (matchedKey) {
+      matched.push({ disp, matchedKey });
+      matchedRegKeys.add(matchedKey);
+    } else {
+      missing.push({ disp });
+    }
   });
 
-  // Match
-  const matched  = [...contactMap.keys()].filter(k => registerSet.has(k));
-  const missing  = [...contactMap.keys()].filter(k => !registerSet.has(k));
-  const extra    = [...registerSet].filter(rv => !contactMap.has(rv));
+  const extra = registerVals.filter(rv => !matchedRegKeys.has(rv));
 
-  // Multi-device: register usernames appearing on more than one row
+  // Multi-device
   const regValCount = {};
   registerRows.forEach(r => {
     const u = normReg(r[assetUserCol]);
     if (u) regValCount[u] = (regValCount[u]||0) + 1;
   });
-  const multi = Object.entries(regValCount).filter(([u,c]) => c > 1 && contactMap.has(u));
+  const multi = Object.entries(regValCount).filter(([u,c]) => c > 1 && matchedRegKeys.has(u));
 
-  // Unassigned
   const unassigned = registerRows.filter(r => !normReg(r[assetUserCol]));
 
   function section(title, icon, colour, items, renderFn) {
@@ -954,8 +1072,8 @@ function runAssetValidation(registerCols, registerRows) {
       <div class="val-tile"><div class="val-tile-num" style="color:var(--accent)">${multi.length}</div><div class="val-tile-label">Multiple devices</div></div>
       <div class="val-tile"><div class="val-tile-num" style="color:var(--muted)">${unassigned.length}</div><div class="val-tile-label">Unassigned devices</div></div>
     </div>
-    ${section('Missing from register — in contact list but no matching user found', '🔴', '#842029', missing, k =>
-      `<div class="val-row"><span class="val-row-user">${esc(contactMap.get(k)||k)}</span><span class="val-row-detail" style="font-size:11px;color:var(--muted)">${esc(k)}</span><span class="val-badge" style="background:var(--red-bg);color:var(--red)">No match</span></div>`
+    ${section('Missing from register — no matching user found', '🔴', '#842029', missing, m =>
+      `<div class="val-row"><span class="val-row-user">${esc(m.disp)}</span><span class="val-badge" style="background:var(--red-bg);color:var(--red)">No match</span></div>`
     )}
     ${section('Extra on register — user not found in contact list', '🟡', '#7d5a00', extra, rv =>
       `<div class="val-row"><span class="val-row-user">${esc(rv)}</span><span class="val-badge" style="background:var(--amber-bg);color:var(--amber)">Not in list</span></div>`
