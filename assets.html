@@ -389,7 +389,7 @@ function loadFile(file, which) {
       });
 
       if (which === 'main') {
-        state.asset.rows = rows; state.asset.cols = cols;
+        state.asset.rows = rows; state.asset.cols = cols; state.asset.baseCols = null; state.asset.lastLookupLen = null;
         state.asset.hidden = new Set(cols.filter(c => DEFAULT_HIDDEN.includes(c.toLowerCase())));
         setDropState('drop1','fname1','dclear1', file.name, true);
         renderAsset();
@@ -428,11 +428,11 @@ function setDropState(dzId, fnId, clrId, filename, has) {
 function clearFile(which, e) {
   if (e) e.stopPropagation();
   if (which === 'main') {
-    state.asset.rows=[]; state.asset.cols=[]; state.asset.hidden=new Set();
+    state.asset.rows=[]; state.asset.cols=[]; state.asset.baseCols=null; state.asset.lastLookupLen=null; state.asset.hidden=new Set();
     setDropState('drop1','fname1','dclear1','',false);
     document.getElementById('assetColWrap').style.display='none';
   } else if (which === 'lookup') {
-    state.asset.lookupRows=[]; state.asset.lookupCols=[];
+    state.asset.lookupRows=[]; state.asset.lookupCols=[]; state.asset.baseCols=null; state.asset.lastLookupLen=null;
     setDropState('drop2','fname2','dclear2','',false);
     if (state.asset.rows.length) renderAsset();
   } else if (which === 'budget') {
@@ -504,17 +504,19 @@ function renderAsset() {
   if (!s.rows.length) return;
   document.getElementById('assetColWrap').style.display = '';
 
-  let { rows, cols, matched, total, error, duplicateCols } = mergeWithLookup(s.rows, s.cols, s.lookupRows, s.lookupCols);
+  // Always merge from original primary cols — never let s.cols accumulate lookup cols
+  let { rows, cols, matched, total, error, duplicateCols } = mergeWithLookup(s.rows, s.baseCols || s.cols, s.lookupRows, s.lookupCols);
 
-  // When cols change (new lookup loaded), update hidden state:
-  // - re-apply DEFAULT_HIDDEN to any new cols
-  // - auto-hide (2nd Report) duplicates
-  if (cols.length !== s.cols.length || JSON.stringify(cols) !== JSON.stringify(s.cols)) {
+  // On first merge (or when lookup changes), record base cols and set up hidden
+  if (!s.baseCols) s.baseCols = [...s.cols];
+  if (s.lastLookupLen !== s.lookupCols.length) {
+    s.lastLookupLen = s.lookupCols.length;
     s.cols = cols;
-    cols.forEach(c => {
-      if (DEFAULT_HIDDEN.includes(c.toLowerCase())) s.hidden.add(c);
-    });
+    // Apply default hidden + auto-hide 2nd Report duplicates
+    cols.forEach(c => { if (DEFAULT_HIDDEN.includes(c.toLowerCase())) s.hidden.add(c); });
     if (duplicateCols) duplicateCols.forEach(c => s.hidden.add(c));
+  } else {
+    s.cols = cols;
   }
 
   renderColToggles('assetColToggles', s.cols, s.hidden, 'asset');
