@@ -460,22 +460,22 @@ function mergeWithLookup(mainRows, mainCols, lookupRows, lookupCols) {
 
   const mainColsLower = mainCols.map(x => x.toLowerCase());
 
-  // Build new lookup cols — deduplicated, no __EMPTY, each output col name appears only once
-  const seenOutCols = new Set(mainColsLower);
+  // Canonicalise a column name: strip SheetJS _1, _2, _3 suffixes that come from repeated headers
+  function canonCol(c) { return c.replace(/_\d+$/, '').trim(); }
+
+  // Build new lookup cols — skip key col, skip __EMPTY, deduplicate by canonical name
+  const seenCanon   = new Set(); // canonical names already added from lookup
   const newLookupCols = [];
-  const seenSrcCols   = new Set();
 
   lookupCols
-    .filter(c => c !== lookupKey && !/^__empty/i.test(c))  // skip key + empty cols
+    .filter(c => c !== lookupKey && !/^__empty/i.test(c))
     .forEach(c => {
-      if (seenSrcCols.has(c)) return; // skip duplicate source col names
-      seenSrcCols.add(c);
+      const canon = canonCol(c).toLowerCase();
+      if (seenCanon.has(canon)) return; // already added this column (or a duplicate of it)
+      seenCanon.add(canon);
 
-      const isDupe = mainColsLower.includes(c.toLowerCase());
-      const outCol = isDupe ? `${c} (2nd Report)` : c;
-
-      if (seenOutCols.has(outCol.toLowerCase())) return; // skip if output name already taken
-      seenOutCols.add(outCol.toLowerCase());
+      const isDupe = mainColsLower.includes(canon);
+      const outCol = isDupe ? `${canonCol(c)} (2nd Report)` : canonCol(c);
 
       newLookupCols.push({ srcCol: c, outCol });
     });
@@ -494,7 +494,7 @@ function mergeWithLookup(mainRows, mainCols, lookupRows, lookupCols) {
     return newRow;
   });
 
-  const duplicateCols = newLookupCols.filter(x => x.outCol !== x.srcCol).map(x => x.outCol);
+  const duplicateCols = newLookupCols.filter(x => x.outCol !== x.srcCol && x.outCol !== canonCol(x.srcCol)).map(x => x.outCol);
   return { rows: mergedRows, cols: mergedCols, matched, total: mainRows.length, duplicateCols };
 }
 
@@ -505,9 +505,15 @@ function renderAsset() {
   document.getElementById('assetColWrap').style.display = '';
 
   let { rows, cols, matched, total, error, duplicateCols } = mergeWithLookup(s.rows, s.cols, s.lookupRows, s.lookupCols);
-  if (cols.length > s.cols.length) {
+
+  // When cols change (new lookup loaded), update hidden state:
+  // - re-apply DEFAULT_HIDDEN to any new cols
+  // - auto-hide (2nd Report) duplicates
+  if (cols.length !== s.cols.length || JSON.stringify(cols) !== JSON.stringify(s.cols)) {
     s.cols = cols;
-    // Auto-hide newly added duplicate (2nd Report) columns
+    cols.forEach(c => {
+      if (DEFAULT_HIDDEN.includes(c.toLowerCase())) s.hidden.add(c);
+    });
     if (duplicateCols) duplicateCols.forEach(c => s.hidden.add(c));
   }
 
