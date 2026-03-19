@@ -369,7 +369,7 @@ function loadFile(file, which) {
       const raw = XLSX.utils.sheet_to_json(ws, { defval:'', raw:true, cellDates:true });
       const fmt = XLSX.utils.sheet_to_json(ws, { defval:'', raw:false, cellDates:false });
 
-      cols = raw.length ? Object.keys(raw[0]) : [];
+      cols = raw.length ? Object.keys(raw[0]).filter(c => !/^__empty/i.test(c)) : [];
 
       // Merge: use formatted string for display but track Date objects separately
       rows = raw.map((rawRow, i) => {
@@ -460,21 +460,27 @@ function mergeWithLookup(mainRows, mainCols, lookupRows, lookupCols) {
 
   const mainColsLower = mainCols.map(x => x.toLowerCase());
 
-  // New cols from lookup — exclude the key col
-  // If a col already exists in main by name, suffix it so both are available
-  const newLookupCols = lookupCols
-    .filter(c => c !== lookupKey)
-    .map(c => {
-      if (mainColsLower.includes(c.toLowerCase())) {
-        return { srcCol: c, outCol: `${c} (2nd Report)` };
-      }
-      return { srcCol: c, outCol: c };
+  // Build new lookup cols — deduplicated, no __EMPTY, each output col name appears only once
+  const seenOutCols = new Set(mainColsLower);
+  const newLookupCols = [];
+  const seenSrcCols   = new Set();
+
+  lookupCols
+    .filter(c => c !== lookupKey && !/^__empty/i.test(c))  // skip key + empty cols
+    .forEach(c => {
+      if (seenSrcCols.has(c)) return; // skip duplicate source col names
+      seenSrcCols.add(c);
+
+      const isDupe = mainColsLower.includes(c.toLowerCase());
+      const outCol = isDupe ? `${c} (2nd Report)` : c;
+
+      if (seenOutCols.has(outCol.toLowerCase())) return; // skip if output name already taken
+      seenOutCols.add(outCol.toLowerCase());
+
+      newLookupCols.push({ srcCol: c, outCol });
     });
 
   const mergedCols = [...mainCols, ...newLookupCols.map(x => x.outCol)];
-
-  // Default-hide all "(2nd Report)" duplicate cols
-  // We'll add them to hidden in renderAsset after merge
 
   let matched = 0;
   const mergedRows = mainRows.map(row => {
@@ -489,7 +495,6 @@ function mergeWithLookup(mainRows, mainCols, lookupRows, lookupCols) {
   });
 
   const duplicateCols = newLookupCols.filter(x => x.outCol !== x.srcCol).map(x => x.outCol);
-
   return { rows: mergedRows, cols: mergedCols, matched, total: mainRows.length, duplicateCols };
 }
 
