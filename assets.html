@@ -285,12 +285,8 @@ body.dark .fy-colour-green { background:#1b4332; color:#a3cfbb; }
     <div id="budgetColWrap" style="display:none">
       <div class="fy-config-wrap">
         <div class="fy-config-title">Financial Year Colour Coding</div>
-        <div class="fy-config-sub">Assign a colour to each financial year. Only years with a colour set will be highlighted.</div>
+        <div class="fy-config-sub">Choose a colour for each period. Updates automatically each year.</div>
         <div id="fyRows"></div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button class="btn btn-outline btn-sm" onclick="addFyRow()">+ Add Year</button>
-          <button class="btn btn-outline btn-sm" onclick="clearFyRows()">Clear All</button>
-        </div>
       </div>
       <div class="col-toggles-wrap">
         <div class="col-toggles-title">Columns — click to show/hide</div>
@@ -339,7 +335,16 @@ body.dark .val-section-header:hover { filter:brightness(1.08); }
 // ── STATE ──
 const DEFAULT_HIDDEN = ['processor manufacturer','expires in'];
 let mode = 'asset';
-let fyColourMap = {}; // { fyYear: 'red'|'amber'|'green'|'none' }
+
+// FY colour config — keyed by offset from current FY: -2, -1, 0, +1, +2
+const FY_SLOTS = [
+  { offset: -2, label: 'Before last financial year' },
+  { offset: -1, label: 'Last financial year'        },
+  { offset:  0, label: 'Current financial year'     },
+  { offset: +1, label: 'Next financial year'        },
+  { offset: +2, label: 'After next financial year'  },
+];
+let fyColourMap = { '-2':'red', '-1':'red', '0':'amber', '1':'green', '2':'green' };
 
 const state = {
   asset:    { rows:[], cols:[], hidden:new Set(), lookupRows:[], lookupCols:[], searchQ:'', sortCol:null, sortDir:1 },
@@ -560,7 +565,6 @@ function renderBudget() {
   const s = state.budget;
   if (!s.rows.length) return;
   document.getElementById('budgetColWrap').style.display = '';
-  buildDefaultFyRows();
   renderFyRows();
   renderColToggles('budgetColToggles', s.cols, s.hidden, 'budget');
 
@@ -607,12 +611,16 @@ function warrantyClass(row, cols) {
   const d = parseDate(row[expiresCol]);
   if (!d) return '';
 
-  // Check each configured FY — colour the row based on which FY the date falls in
-  for (const [fyYear, colour] of Object.entries(fyColourMap)) {
-    if (colour === 'none' || !colour) continue;
-    const fy = parseInt(fyYear);
-    const fyStart = new Date(fy, 6, 1);       // Jul 1
-    const fyEnd   = new Date(fy + 1, 5, 30);  // Jun 30
+  const now = new Date();
+  const curFy = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+
+  // Check which FY offset the date falls in
+  for (const slot of FY_SLOTS) {
+    const colour = fyColourMap[String(slot.offset)];
+    if (!colour || colour === 'none') continue;
+    const fy = curFy + slot.offset;
+    const fyStart = new Date(fy, 6, 1);
+    const fyEnd   = new Date(fy + 1, 5, 30);
     if (d >= fyStart && d <= fyEnd) {
       return colour === 'red' ? 'row-red' : colour === 'amber' ? 'row-amber' : 'row-green';
     }
@@ -620,62 +628,28 @@ function warrantyClass(row, cols) {
   return '';
 }
 
-// ── PER-FY COLOUR CONFIG ──
-function fyLabel(y) {
-  const now = new Date();
-  const cur = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
-  return `FY ${y}/${String(y+1).slice(2)}${y === cur ? ' (current)' : ''}`;
-}
-
-function buildDefaultFyRows() {
-  // Auto-populate with current FY + 2 years back if nothing set yet
-  if (Object.keys(fyColourMap).length > 0) return;
-  const now = new Date();
-  const cur = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
-  fyColourMap[cur - 2] = 'red';
-  fyColourMap[cur - 1] = 'red';
-  fyColourMap[cur]     = 'amber';
-  fyColourMap[cur + 1] = 'green';
-  renderFyRows();
-}
-
+// ── FY COLOUR CONFIG ──
 function renderFyRows() {
   const container = document.getElementById('fyRows');
   if (!container) return;
+  const now = new Date();
+  const curFy = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
   const colours = ['none','red','amber','green'];
   const colourLabels = { none:'None', red:'🔴 Red', amber:'🟡 Amber', green:'🟢 Green' };
-  container.innerHTML = Object.entries(fyColourMap).sort((a,b)=>a[0]-b[0]).map(([fy, col]) => `
-    <div class="fy-row">
-      <span class="fy-row-label">${fyLabel(parseInt(fy))}</span>
-      ${colours.map(c => `<button class="fy-colour-btn fy-colour-${c}${col===c?' active':''}" onclick="setFyColour(${fy},'${c}')">${colourLabels[c]}</button>`).join('')}
-      <button class="fy-remove" onclick="removeFyRow(${fy})" title="Remove">✕</button>
-    </div>`).join('');
+
+  container.innerHTML = FY_SLOTS.map(slot => {
+    const fy  = curFy + slot.offset;
+    const col = fyColourMap[String(slot.offset)] || 'none';
+    const fyStr = `FY ${fy}/${String(fy+1).slice(2)}`;
+    return `<div class="fy-row">
+      <span class="fy-row-label">${slot.label} <span style="font-size:11px;color:var(--muted);font-weight:400">(${fyStr})</span></span>
+      ${colours.map(c => `<button class="fy-colour-btn fy-colour-${c}${col===c?' active':''}" onclick="setFyColour('${slot.offset}','${c}')">${colourLabels[c]}</button>`).join('')}
+    </div>`;
+  }).join('');
 }
 
-function setFyColour(fy, colour) {
-  fyColourMap[fy] = colour;
-  renderFyRows();
-  renderBudget();
-}
-
-function addFyRow() {
-  const now = new Date();
-  const cur = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
-  // Add the next year not already in the map
-  for (let y = cur - 5; y <= cur + 5; y++) {
-    if (!(y in fyColourMap)) { fyColourMap[y] = 'none'; break; }
-  }
-  renderFyRows();
-}
-
-function removeFyRow(fy) {
-  delete fyColourMap[fy];
-  renderFyRows();
-  renderBudget();
-}
-
-function clearFyRows() {
-  fyColourMap = {};
+function setFyColour(offset, colour) {
+  fyColourMap[String(offset)] = colour;
   renderFyRows();
   renderBudget();
 }
