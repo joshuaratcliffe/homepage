@@ -224,8 +224,12 @@ body.dark tr.row-green td { color:#a3cfbb !important; }
               <select id="avAssetUserCol" onchange="runAssetValidation()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;min-width:180px"></select>
             </div>
             <div>
-              <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">User column in user list</div>
-              <select id="avUsersCol" onchange="runAssetValidation()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;min-width:180px"></select>
+              <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">First name column in user list</div>
+              <select id="avUsersFirstCol" onchange="runAssetValidation()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;min-width:160px"></select>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Last name column in user list</div>
+              <select id="avUsersLastCol" onchange="runAssetValidation()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;min-width:160px"></select>
             </div>
           </div>
         </div>
@@ -838,64 +842,48 @@ async function generateBudgetExcelJS(exportRows, cols, visibleCols, stamp) {
 
 // ── INLINE ASSET VALIDATION ──
 // Normalise a user identifier: lowercase, trim, strip email domain if present
-// ── SMART USER MATCHING ──
-// Extract name tokens from any format:
-//   "maria.santos"  → ['maria','santos']
-//   "maria.santos@company.com" → ['maria','santos']
-//   "Maria Santos"  → ['maria','santos']
-//   "maria"         → ['maria']
-function nameTokens(val) {
+// ── USER MATCHING ──
+// Normalise a register username: lowercase, trim, strip email domain
+function normReg(val) {
   const s = String(val||'').trim().toLowerCase();
-  if (!s) return [];
-  // Strip email domain
-  const local = s.includes('@') ? s.split('@')[0] : s;
-  // Split on dot, underscore, dash, space
-  return local.split(/[.\-_\s]+/).filter(Boolean);
+  return s.includes('@') ? s.split('@')[0] : s;
 }
 
-// Returns a match confidence score between a register user value and a contact list user value:
-//   2 = strong match (both first+last name tokens match)
-//   1 = weak match (first name only, or single token matches)
-//   0 = no match
-function matchScore(registerVal, contactVal) {
-  const rt = nameTokens(registerVal);
-  const ct = nameTokens(contactVal);
-  if (!rt.length || !ct.length) return 0;
-
-  // Exact normalised match
-  if (rt.join('.') === ct.join('.')) return 2;
-
-  // Count how many tokens appear in the other set
-  const rtSet = new Set(rt);
-  const ctSet = new Set(ct);
-  const commonCount = [...rtSet].filter(t => ctSet.has(t)).length;
-
-  if (commonCount === 0) return 0;
-  // Strong: at least 2 tokens match (first + last), or all register tokens matched
-  if (commonCount >= 2 || (commonCount >= rt.length && rt.length >= 2)) return 2;
-  // Weak: only 1 token matches (first name only)
-  return 1;
+// Build a normalised key from first + last name columns: "firstname.lastname"
+function normContact(first, last) {
+  const f = String(first||'').trim().toLowerCase();
+  const l = String(last||'').trim().toLowerCase();
+  if (f && l) return `${f}.${l}`;
+  return f || l;
 }
 
 function updateAvColPickers(registerCols) {
-  const asel = document.getElementById('avAssetUserCol');
-  const usel = document.getElementById('avUsersCol');
-  if (!asel || !usel) return;
-  const prevA = asel.value, prevU = usel.value;
+  const asel  = document.getElementById('avAssetUserCol');
+  const fsel  = document.getElementById('avUsersFirstCol');
+  const lsel  = document.getElementById('avUsersLastCol');
+  if (!asel || !fsel || !lsel) return;
+
+  const prevA = asel.value, prevF = fsel.value, prevL = lsel.value;
 
   asel.innerHTML = (registerCols||[]).map(c =>
     `<option value="${esc(c)}"${c===prevA?' selected':''}>${esc(c)}</option>`).join('');
-  usel.innerHTML = state.avUsers.cols.map(c =>
-    `<option value="${esc(c)}"${c===prevU?' selected':''}>${esc(c)}</option>`).join('');
+  fsel.innerHTML = state.avUsers.cols.map(c =>
+    `<option value="${esc(c)}"${c===prevF?' selected':''}>${esc(c)}</option>`).join('');
+  lsel.innerHTML = state.avUsers.cols.map(c =>
+    `<option value="${esc(c)}"${c===prevL?' selected':''}>${esc(c)}</option>`).join('');
 
-  // Auto-pick best user column
+  // Auto-pick columns
   if (!prevA) {
-    const guess = (registerCols||[]).find(c => /^user$|username|email|assigned/i.test(c));
-    if (guess) asel.value = guess;
+    const g = (registerCols||[]).find(c => /^user$|username|email|assigned/i.test(c));
+    if (g) asel.value = g;
   }
-  if (!prevU) {
-    const guess = state.avUsers.cols.find(c => /^user$|username|email|name/i.test(c));
-    if (guess) usel.value = guess;
+  if (!prevF) {
+    const g = state.avUsers.cols.find(c => /first.?name|firstname|first/i.test(c));
+    if (g) fsel.value = g;
+  }
+  if (!prevL) {
+    const g = state.avUsers.cols.find(c => /last.?name|lastname|surname|last/i.test(c));
+    if (g) lsel.value = g;
   }
 
   const show = (registerCols||[]).length && state.avUsers.cols.length;
@@ -912,55 +900,39 @@ function runAssetValidation(registerCols, registerRows) {
   if (!registerRows || !registerRows.length || !state.avUsers.rows.length) return;
 
   const assetUserCol = document.getElementById('avAssetUserCol').value;
-  const usersCol     = document.getElementById('avUsersCol').value;
-  if (!assetUserCol || !usersCol) return;
+  const firstCol     = document.getElementById('avUsersFirstCol').value;
+  const lastCol      = document.getElementById('avUsersLastCol').value;
+  if (!assetUserCol || !firstCol || !lastCol) return;
 
-  // Unique register user values (non-blank)
-  const registerVals = [...new Set(
-    registerRows.map(r => String(r[assetUserCol]||'').trim()).filter(Boolean)
-  )];
+  // Build a set of normalised register usernames
+  const registerSet = new Set(
+    registerRows.map(r => normReg(r[assetUserCol])).filter(Boolean)
+  );
 
-  // Unique contact list user values (non-blank)
-  const contactVals = [...new Set(
-    state.avUsers.rows.map(r => String(r[usersCol]||'').trim()).filter(Boolean)
-  )];
-
-  // For each contact, find the best matching register value
-  // matched:  score 2 — confident match
-  // fuzzy:    score 1 — first-name-only, needs review
-  // missing:  score 0 — no match found
-  const matched = []; // { contact, register }
-  const fuzzy   = []; // { contact, register } — low confidence
-  const missing = []; // contact string — no match at all
-
-  contactVals.forEach(cv => {
-    let bestScore = 0, bestReg = null;
-    registerVals.forEach(rv => {
-      const s = matchScore(rv, cv);
-      if (s > bestScore) { bestScore = s; bestReg = rv; }
-    });
-    if (bestScore === 2) matched.push({ contact:cv, register:bestReg });
-    else if (bestScore === 1) fuzzy.push({ contact:cv, register:bestReg });
-    else missing.push(cv);
+  // Build a set of normalised contact keys (firstname.lastname)
+  // Also keep original display values for output
+  const contactMap = new Map(); // normKey → original display string
+  state.avUsers.rows.forEach(r => {
+    const key  = normContact(r[firstCol], r[lastCol]);
+    const disp = [String(r[firstCol]||'').trim(), String(r[lastCol]||'').trim()].filter(Boolean).join(' ');
+    if (key) contactMap.set(key, disp);
   });
 
-  // Extra: register users with no contact match
-  const matchedRegVals = new Set([...matched, ...fuzzy].map(m => m.register));
-  const extra = registerVals.filter(rv => {
-    // Only count as extra if no contact matched to it
-    return ![...matched, ...fuzzy].some(m => m.register === rv);
-  });
+  // Match
+  const matched  = [...contactMap.keys()].filter(k => registerSet.has(k));
+  const missing  = [...contactMap.keys()].filter(k => !registerSet.has(k));
+  const extra    = [...registerSet].filter(rv => !contactMap.has(rv));
 
-  // Multi-device: register values appearing more than once
+  // Multi-device: register usernames appearing on more than one row
   const regValCount = {};
   registerRows.forEach(r => {
-    const u = String(r[assetUserCol]||'').trim();
+    const u = normReg(r[assetUserCol]);
     if (u) regValCount[u] = (regValCount[u]||0) + 1;
   });
-  const multi = Object.entries(regValCount).filter(([u,c]) => c > 1 && matchedRegVals.has(u));
+  const multi = Object.entries(regValCount).filter(([u,c]) => c > 1 && contactMap.has(u));
 
   // Unassigned
-  const unassigned = registerRows.filter(r => !String(r[assetUserCol]||'').trim());
+  const unassigned = registerRows.filter(r => !normReg(r[assetUserCol]));
 
   function section(title, icon, colour, items, renderFn) {
     return `<div class="val-section">
@@ -979,25 +951,16 @@ function runAssetValidation(registerCols, registerRows) {
       <div class="val-tile"><div class="val-tile-num" style="color:var(--green)">${matched.length}</div><div class="val-tile-label">✓ Matched</div></div>
       <div class="val-tile"><div class="val-tile-num" style="color:var(--red)">${missing.length}</div><div class="val-tile-label">Missing from register</div></div>
       <div class="val-tile"><div class="val-tile-num" style="color:var(--amber)">${extra.length}</div><div class="val-tile-label">Extra on register</div></div>
-      <div class="val-tile"><div class="val-tile-num" style="color:#7a5a9b">${fuzzy.length}</div><div class="val-tile-label">Needs review</div></div>
       <div class="val-tile"><div class="val-tile-num" style="color:var(--accent)">${multi.length}</div><div class="val-tile-label">Multiple devices</div></div>
       <div class="val-tile"><div class="val-tile-num" style="color:var(--muted)">${unassigned.length}</div><div class="val-tile-label">Unassigned devices</div></div>
     </div>
-    ${section('Missing from register — no matching device found', '🔴', '#842029', missing, cv =>
-      `<div class="val-row"><span class="val-row-user">${esc(cv)}</span><span class="val-badge" style="background:var(--red-bg);color:var(--red)">No match</span></div>`
+    ${section('Missing from register — in contact list but no matching user found', '🔴', '#842029', missing, k =>
+      `<div class="val-row"><span class="val-row-user">${esc(contactMap.get(k)||k)}</span><span class="val-row-detail" style="font-size:11px;color:var(--muted)">${esc(k)}</span><span class="val-badge" style="background:var(--red-bg);color:var(--red)">No match</span></div>`
     )}
-    ${section('Needs review — first name only match, please verify', '🟣', '#7a5a9b', fuzzy, m =>
-      `<div class="val-row">
-        <span class="val-row-user">${esc(m.contact)}</span>
-        <span style="font-size:12px;color:var(--muted);margin:0 8px">→</span>
-        <span class="val-row-detail">${esc(m.register)}</span>
-        <span class="val-badge" style="background:#f3eeff;color:#7a5a9b">Partial match</span>
-      </div>`
-    )}
-    ${section('Extra on register — device user not found in contact list', '🟡', '#7d5a00', extra, rv =>
+    ${section('Extra on register — user not found in contact list', '🟡', '#7d5a00', extra, rv =>
       `<div class="val-row"><span class="val-row-user">${esc(rv)}</span><span class="val-badge" style="background:var(--amber-bg);color:var(--amber)">Not in list</span></div>`
     )}
-    ${section('Users with multiple devices', '🔵', '#4a6b9b', multi, ([u, count]) =>
+    ${section('Users with multiple devices', '🔵', '#4a6b9b', multi, ([u,count]) =>
       `<div class="val-row"><span class="val-row-user">${esc(u)}</span><span class="val-badge" style="background:#eef3ff;color:#4a6b9b">${count} devices</span></div>`
     )}
     ${section('Unassigned devices — no user on register', '⚪', '#8a847c', unassigned, r =>
