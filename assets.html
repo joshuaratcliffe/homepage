@@ -450,7 +450,6 @@ function clearFile(which, e) {
 function mergeWithLookup(mainRows, mainCols, lookupRows, lookupCols) {
   if (!lookupRows.length) return { rows: mainRows, cols: mainCols, matched:0, total:0 };
 
-  // Find Device Name column (case-insensitive) in both sheets
   const mainKey   = mainCols.find(c => c.toLowerCase().includes('device name') || c.toLowerCase() === 'name');
   const lookupKey = lookupCols.find(c => c.toLowerCase().includes('device name') || c.toLowerCase() === 'name');
   if (!mainKey || !lookupKey) return { rows: mainRows, cols: mainCols, matched:0, total:0, error:'Could not find Device Name column in one of the sheets' };
@@ -459,9 +458,23 @@ function mergeWithLookup(mainRows, mainCols, lookupRows, lookupCols) {
   const lookupMap = {};
   lookupRows.forEach(r => { const k = String(r[lookupKey]||'').trim().toLowerCase(); if (k) lookupMap[k] = r; });
 
-  // New cols = main cols + any lookup cols not already in main (excluding the key col)
-  const newLookupCols = lookupCols.filter(c => c !== lookupKey && !mainCols.map(x=>x.toLowerCase()).includes(c.toLowerCase()));
-  const mergedCols    = [...mainCols, ...newLookupCols];
+  const mainColsLower = mainCols.map(x => x.toLowerCase());
+
+  // New cols from lookup — exclude the key col
+  // If a col already exists in main by name, suffix it so both are available
+  const newLookupCols = lookupCols
+    .filter(c => c !== lookupKey)
+    .map(c => {
+      if (mainColsLower.includes(c.toLowerCase())) {
+        return { srcCol: c, outCol: `${c} (2nd Report)` };
+      }
+      return { srcCol: c, outCol: c };
+    });
+
+  const mergedCols = [...mainCols, ...newLookupCols.map(x => x.outCol)];
+
+  // Default-hide all "(2nd Report)" duplicate cols
+  // We'll add them to hidden in renderAsset after merge
 
   let matched = 0;
   const mergedRows = mainRows.map(row => {
@@ -469,11 +482,15 @@ function mergeWithLookup(mainRows, mainCols, lookupRows, lookupCols) {
     const hit  = lookupMap[key];
     if (hit) matched++;
     const newRow = { ...row };
-    newLookupCols.forEach(c => { newRow[c] = hit ? (hit[c]||'') : ''; });
+    newLookupCols.forEach(({ srcCol, outCol }) => {
+      newRow[outCol] = hit ? (hit[srcCol]||'') : '';
+    });
     return newRow;
   });
 
-  return { rows: mergedRows, cols: mergedCols, matched, total: mainRows.length };
+  const duplicateCols = newLookupCols.filter(x => x.outCol !== x.srcCol).map(x => x.outCol);
+
+  return { rows: mergedRows, cols: mergedCols, matched, total: mainRows.length, duplicateCols };
 }
 
 // ── ASSET RENDER ──
@@ -482,10 +499,11 @@ function renderAsset() {
   if (!s.rows.length) return;
   document.getElementById('assetColWrap').style.display = '';
 
-  let { rows, cols, matched, total, error } = mergeWithLookup(s.rows, s.cols, s.lookupRows, s.lookupCols);
+  let { rows, cols, matched, total, error, duplicateCols } = mergeWithLookup(s.rows, s.cols, s.lookupRows, s.lookupCols);
   if (cols.length > s.cols.length) {
-    const newCols = cols.filter(c => !s.cols.includes(c));
     s.cols = cols;
+    // Auto-hide newly added duplicate (2nd Report) columns
+    if (duplicateCols) duplicateCols.forEach(c => s.hidden.add(c));
   }
 
   renderColToggles('assetColToggles', s.cols, s.hidden, 'asset');
