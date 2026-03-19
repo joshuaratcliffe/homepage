@@ -130,6 +130,25 @@ body.dark tr.row-green td { color:#a3cfbb !important; }
 .legend-item { display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; }
 .legend-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
 
+/* FY colour config */
+.fy-config-wrap { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:20px; }
+.fy-config-title { font-size:13px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.fy-config-sub { font-size:12px; color:var(--muted); margin-bottom:14px; }
+.fy-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+.fy-row-label { font-size:13px; font-weight:600; color:var(--text2); min-width:160px; }
+.fy-colour-btn { padding:5px 14px; border-radius:7px; border:2px solid transparent; font-size:12px; font-weight:700; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; transition:all .15s; opacity:.5; }
+.fy-colour-btn.active { opacity:1; border-color:var(--text) !important; }
+.fy-colour-btn:hover { opacity:.85; }
+.fy-colour-none  { background:var(--surface2); color:var(--muted); border-color:var(--border2) !important; }
+.fy-colour-red   { background:#f8d7da; color:#842029; }
+.fy-colour-amber { background:#fff3cd; color:#7d5a00; }
+.fy-colour-green { background:#d8f3dc; color:#2d6a4f; }
+body.dark .fy-colour-red   { background:#4a1219; color:#f1aeb5; }
+body.dark .fy-colour-amber { background:#4a3800; color:#ffe083; }
+body.dark .fy-colour-green { background:#1b4332; color:#a3cfbb; }
+.fy-remove { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; padding:2px 6px; border-radius:4px; transition:color .15s; }
+.fy-remove:hover { color:var(--red); }
+
 /* row count / status */
 .table-meta { font-size:12.5px; color:var(--muted); margin-bottom:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
 .lookup-badge { font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px; }
@@ -264,15 +283,14 @@ body.dark tr.row-green td { color:#a3cfbb !important; }
     </div>
 
     <div id="budgetColWrap" style="display:none">
-      <div class="legend">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Financial Year</span>
-          <select id="fySelect" onchange="onFyChange()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:6px 12px;font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;cursor:pointer;transition:border-color .18s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor=''"></select>
+      <div class="fy-config-wrap">
+        <div class="fy-config-title">Financial Year Colour Coding</div>
+        <div class="fy-config-sub">Assign a colour to each financial year. Only years with a colour set will be highlighted.</div>
+        <div id="fyRows"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-outline btn-sm" onclick="addFyRow()">+ Add Year</button>
+          <button class="btn btn-outline btn-sm" onclick="clearFyRows()">Clear All</button>
         </div>
-        <div class="legend-item"><div class="legend-dot" style="background:#842029"></div> Expired before selected FY</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#7d5a00"></div> Expiring within selected FY</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#2d6a4f"></div> Expiring after selected FY</div>
-        <div class="legend-item" style="color:var(--muted)"><div class="legend-dot" style="background:var(--border)"></div> No date / unknown</div>
       </div>
       <div class="col-toggles-wrap">
         <div class="col-toggles-title">Columns — click to show/hide</div>
@@ -321,7 +339,7 @@ body.dark .val-section-header:hover { filter:brightness(1.08); }
 // ── STATE ──
 const DEFAULT_HIDDEN = ['processor manufacturer','expires in'];
 let mode = 'asset';
-let selectedFyYear = null; // null = current FY
+let fyColourMap = {}; // { fyYear: 'red'|'amber'|'green'|'none' }
 
 const state = {
   asset:    { rows:[], cols:[], hidden:new Set(), lookupRows:[], lookupCols:[], searchQ:'', sortCol:null, sortDir:1 },
@@ -542,12 +560,8 @@ function renderBudget() {
   const s = state.budget;
   if (!s.rows.length) return;
   document.getElementById('budgetColWrap').style.display = '';
-  buildFyOptions(); // populate FY dropdown (safe to call multiple times — only updates if needed)
-  // Keep existing FY selection if already set
-  if (selectedFyYear !== null) {
-    const sel = document.getElementById('fySelect');
-    if (sel) sel.value = selectedFyYear;
-  }
+  buildDefaultFyRows();
+  renderFyRows();
   renderColToggles('budgetColToggles', s.cols, s.hidden, 'budget');
 
   // Check if a usable Expires column exists with actual dates
@@ -593,37 +607,76 @@ function warrantyClass(row, cols) {
   const d = parseDate(row[expiresCol]);
   if (!d) return '';
 
-  // Use selectedFyYear, falling back to current Australian FY
-  const now = new Date();
-  const fy  = selectedFyYear !== null ? selectedFyYear
-    : (now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1);
-  const fyStart = new Date(fy, 6, 1);
-  const fyEnd   = new Date(fy + 1, 5, 30);
-
-  if (d < fyStart) return 'row-red';
-  if (d <= fyEnd)  return 'row-amber';
-  return 'row-green';
-}
-
-// ── FY SELECTOR ──
-function buildFyOptions() {
-  const sel = document.getElementById('fySelect');
-  if (!sel) return;
-  const now   = new Date();
-  const curFy = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
-  sel.innerHTML = '';
-  for (let y = curFy - 5; y <= curFy + 3; y++) {
-    const opt = document.createElement('option');
-    opt.value = y;
-    opt.textContent = `FY ${y}/${String(y+1).slice(2)}  (Jul ${y} – Jun ${y+1})${y === curFy ? ' — current' : ''}`;
-    if (y === curFy) opt.selected = true;
-    sel.appendChild(opt);
+  // Check each configured FY — colour the row based on which FY the date falls in
+  for (const [fyYear, colour] of Object.entries(fyColourMap)) {
+    if (colour === 'none' || !colour) continue;
+    const fy = parseInt(fyYear);
+    const fyStart = new Date(fy, 6, 1);       // Jul 1
+    const fyEnd   = new Date(fy + 1, 5, 30);  // Jun 30
+    if (d >= fyStart && d <= fyEnd) {
+      return colour === 'red' ? 'row-red' : colour === 'amber' ? 'row-amber' : 'row-green';
+    }
   }
-  selectedFyYear = curFy;
+  return '';
 }
 
-function onFyChange() {
-  selectedFyYear = parseInt(document.getElementById('fySelect').value);
+// ── PER-FY COLOUR CONFIG ──
+function fyLabel(y) {
+  const now = new Date();
+  const cur = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  return `FY ${y}/${String(y+1).slice(2)}${y === cur ? ' (current)' : ''}`;
+}
+
+function buildDefaultFyRows() {
+  // Auto-populate with current FY + 2 years back if nothing set yet
+  if (Object.keys(fyColourMap).length > 0) return;
+  const now = new Date();
+  const cur = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  fyColourMap[cur - 2] = 'red';
+  fyColourMap[cur - 1] = 'red';
+  fyColourMap[cur]     = 'amber';
+  fyColourMap[cur + 1] = 'green';
+  renderFyRows();
+}
+
+function renderFyRows() {
+  const container = document.getElementById('fyRows');
+  if (!container) return;
+  const colours = ['none','red','amber','green'];
+  const colourLabels = { none:'None', red:'🔴 Red', amber:'🟡 Amber', green:'🟢 Green' };
+  container.innerHTML = Object.entries(fyColourMap).sort((a,b)=>a[0]-b[0]).map(([fy, col]) => `
+    <div class="fy-row">
+      <span class="fy-row-label">${fyLabel(parseInt(fy))}</span>
+      ${colours.map(c => `<button class="fy-colour-btn fy-colour-${c}${col===c?' active':''}" onclick="setFyColour(${fy},'${c}')">${colourLabels[c]}</button>`).join('')}
+      <button class="fy-remove" onclick="removeFyRow(${fy})" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+function setFyColour(fy, colour) {
+  fyColourMap[fy] = colour;
+  renderFyRows();
+  renderBudget();
+}
+
+function addFyRow() {
+  const now = new Date();
+  const cur = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  // Add the next year not already in the map
+  for (let y = cur - 5; y <= cur + 5; y++) {
+    if (!(y in fyColourMap)) { fyColourMap[y] = 'none'; break; }
+  }
+  renderFyRows();
+}
+
+function removeFyRow(fy) {
+  delete fyColourMap[fy];
+  renderFyRows();
+  renderBudget();
+}
+
+function clearFyRows() {
+  fyColourMap = {};
+  renderFyRows();
   renderBudget();
 }
 
