@@ -301,8 +301,14 @@ body.dark tr.row-green td { color:#a3cfbb !important; }
 .val-tile-num { font-family:'Lora',serif; font-size:36px; font-weight:600; line-height:1; margin-bottom:6px; }
 .val-tile-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
 .val-section { background:var(--surface); border:1px solid var(--border); border-radius:13px; overflow:hidden; margin-bottom:16px; box-shadow:0 1px 3px var(--shadow); }
-.val-section-header { padding:13px 18px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); }
+.val-section-header { padding:13px 18px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); cursor:pointer; user-select:none; }
+.val-section-header:hover { filter:brightness(.96); }
+body.dark .val-section-header:hover { filter:brightness(1.08); }
 .val-section-body { padding:0; }
+.val-section.collapsed .val-section-body { display:none; }
+.val-section.collapsed .val-section-header { border-bottom:none; }
+.val-chevron { margin-left:4px; font-size:10px; opacity:.6; transition:transform .2s; }
+.val-section.collapsed .val-chevron { transform:rotate(-90deg); }
 .val-row { display:flex; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid var(--border); font-size:13.5px; }
 .val-row:last-child { border-bottom:none; }
 .val-row-user { font-weight:600; color:var(--text); flex:1; }
@@ -1054,9 +1060,10 @@ function runAssetValidation(registerCols, registerRows) {
 
   function section(title, icon, colour, items, renderFn) {
     return `<div class="val-section">
-      <div class="val-section-header" style="background:${colour}18;color:${colour}">
+      <div class="val-section-header" style="background:${colour}18;color:${colour}" onclick="this.closest('.val-section').classList.toggle('collapsed')">
         ${icon} ${title}
         <span style="margin-left:auto;font-size:11px;background:${colour}22;padding:2px 8px;border-radius:20px">${items.length}</span>
+        <span class="val-chevron">▼</span>
       </div>
       <div class="val-section-body">
         ${items.length ? items.map(renderFn).join('') : '<div class="val-empty">None — all clear ✓</div>'}
