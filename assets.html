@@ -1278,6 +1278,32 @@ document.addEventListener('click', function(e) {
       runAssetValidation();
     } else if (action === 'device') {
       state.avIgnoredDevices.add(`${payload.u}::${payload.dev}`);
+      // Also remove the row from the actual register data
+      const assetUserCol = document.getElementById('avAssetUserCol').value;
+      const registerCols = state._avRegisterCols || state.asset.baseCols || state.asset.cols;
+      const nameCol = registerCols.find(c => /^name$|device.?name|asset.?name/i.test(c));
+      if (nameCol) {
+        // Remove from primary rows
+        state.asset.rows = state.asset.rows.filter(r =>
+          !(normReg(r[assetUserCol]) === payload.u && String(r[nameCol]||'').trim() === payload.dev)
+        );
+        // Remove from lookup rows too if present
+        if (state.asset.lookupRows.length) {
+          const lookupNameCol = state.asset.lookupCols.find(c => /^name$|device.?name|asset.?name/i.test(c));
+          if (lookupNameCol) {
+            state.asset.lookupRows = state.asset.lookupRows.filter(r =>
+              !(normReg(r[assetUserCol]) === payload.u && String(r[lookupNameCol]||'').trim() === payload.dev)
+            );
+          }
+        }
+        // Reset merge cache so renderAsset rebuilds correctly
+        state.asset.baseCols = null;
+        state.asset.lastLookupLen = null;
+        state._avRegisterCols = null;
+        state._avRegisterRows = null;
+        // Re-render the table
+        renderAsset();
+      }
       runAssetValidation();
     }
     return;
