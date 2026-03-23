@@ -1172,7 +1172,7 @@ function runAssetValidation(registerCols, registerRows) {
 
   function ellipsis(menuId, items) {
     const menuItems = items.map(item =>
-      `<div class="val-menu-item${item.danger?' danger':''}" onclick="${item.action};closeValMenus()">${item.label}</div>`
+      `<div class="val-menu-item${item.danger?' danger':''}" onclick="closeValMenus();${item.action}">${item.label}</div>`
     ).join('');
     return `<div class="val-ellipsis-wrap">
       <button class="val-ellipsis" onclick="event.stopPropagation();toggleValMenu('${menuId}')">···</button>
@@ -1238,8 +1238,13 @@ function runAssetValidation(registerCols, registerRows) {
       `<div class="val-row"><span class="val-row-user" style="color:var(--muted);font-style:italic">No user assigned</span><span class="val-badge" style="background:var(--surface2);color:var(--muted)">Unassigned</span></div>`
     )}`;
 
-  // Close menus on outside click
-  document.addEventListener('click', closeValMenus, { once: true });
+  // Close menus when clicking outside
+  if (!window._valMenuListenerAdded) {
+    window._valMenuListenerAdded = true;
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.val-ellipsis-wrap')) closeValMenus();
+    });
+  }
 }
 
 function toggleValMenu(id) {
