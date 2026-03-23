@@ -490,6 +490,7 @@ function clearFile(which, e) {
   } else if (which === 'avUsers') {
     state.avUsers.rows=[]; state.avUsers.cols=[];
     state.avIgnoredMissing=new Set(); state.avIgnoredExtra=new Set(); state.avIgnoredDevices=new Set();
+    state._avRegisterCols=null; state._avRegisterRows=null;
     setDropState('avDrop','avFname','avDclear','',false);
     document.getElementById('assetValResults').innerHTML='';
   }
@@ -1077,10 +1078,20 @@ function updateAvColPickers(registerCols) {
 
 function runAssetValidation(registerCols, registerRows) {
   if (!registerCols) {
-    const s = state.asset;
-    const merged = mergeWithLookup(s.rows, s.cols, s.lookupRows||[], s.lookupCols||[]);
-    registerCols = merged.cols;
-    registerRows = merged.rows;
+    // Use cached values if available, otherwise derive from asset state
+    if (state._avRegisterCols && state._avRegisterRows) {
+      registerCols = state._avRegisterCols;
+      registerRows = state._avRegisterRows;
+    } else {
+      const s = state.asset;
+      const merged = mergeWithLookup(s.rows, s.baseCols || s.cols, s.lookupRows||[], s.lookupCols||[]);
+      registerCols = merged.cols;
+      registerRows = merged.rows;
+    }
+  } else {
+    // Cache for future no-arg calls
+    state._avRegisterCols = registerCols;
+    state._avRegisterRows = registerRows;
   }
   if (!registerRows || !registerRows.length || !state.avUsers.rows.length) return;
 
