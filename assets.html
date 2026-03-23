@@ -1181,13 +1181,12 @@ function runAssetValidation(registerCols, registerRows) {
     return { u, devices };
   }).filter(x => x.devices.length > 1);
 
-  function ellipsis(menuId, items) {
-    const menuItems = items.map(item =>
-      `<div class="val-menu-item${item.danger?' danger':''}" onclick="closeValMenus();${item.action}">${item.label}</div>`
-    ).join('');
+  function ellipsis(type, payload) {
     return `<div class="val-ellipsis-wrap">
-      <button class="val-ellipsis" onclick="event.stopPropagation();toggleValMenu('${menuId}')">···</button>
-      <div class="val-menu" id="${menuId}">${menuItems}</div>
+      <button class="val-ellipsis" onclick="event.stopPropagation();openValMenu(this)">···</button>
+      <div class="val-menu">
+        <div class="val-menu-item danger" data-action="${type}" data-payload="${esc(JSON.stringify(payload))}">✕ Remove from list</div>
+      </div>
     </div>`;
   }
 
@@ -1213,29 +1212,26 @@ function runAssetValidation(registerCols, registerRows) {
       <div class="val-tile"><div class="val-tile-num" style="color:var(--muted)">${unassigned.length}</div><div class="val-tile-label">Unassigned devices</div></div>
     </div>
     ${section('Missing from register — no matching user found', '🔴', '#842029', shownMissing, (m, i) => {
-      const mid = `vmenu_miss_${i}`;
       return `<div class="val-row">
         <span class="val-row-user">${esc(m.disp)}</span>
         <span class="val-badge" style="background:var(--red-bg);color:var(--red)">No match</span>
-        ${ellipsis(mid, [{ label:'✕ Remove from list', danger:true, action:`removeMissing(${JSON.stringify(m.disp)})` }])}
+        ${ellipsis('missing', {disp: m.disp})}
       </div>`;
     })}
     ${section('Extra on register — user not found in contact list', '🟡', '#7d5a00', shownExtra, (rv, i) => {
-      const mid = `vmenu_extra_${i}`;
       return `<div class="val-row">
         <span class="val-row-user">${esc(rv)}</span>
         <span class="val-badge" style="background:var(--amber-bg);color:var(--amber)">Not in list</span>
-        ${ellipsis(mid, [{ label:'✕ Remove from list', danger:true, action:`removeExtra(${JSON.stringify(rv)})` }])}
+        ${ellipsis('extra', {rv})}
       </div>`;
     })}
     ${section('Users with multiple devices', '🔵', '#4a6b9b', multiWithDevices, (item, i) => {
-      const devRows = item.devices.map((dev, di) => {
-        const mid = `vmenu_dev_${i}_${di}`;
-        return `<div class="val-device-row">
-          <span class="val-device-name">${esc(dev)}</span>
-          ${ellipsis(mid, [{ label:'✕ Remove device', danger:true, action:`removeDevice(${JSON.stringify(item.u)},${JSON.stringify(dev)})` }])}
-        </div>`;
-      }).join('');
+        const devRows = item.devices.map((dev, di) => {
+          return `<div class="val-device-row">
+            <span class="val-device-name">${esc(dev)}</span>
+            ${ellipsis('device', {u: item.u, dev})}
+          </div>`;
+        }).join('');
       return `<div>
         <div class="val-row val-multi-user" onclick="toggleMultiUser(this)">
           <span class="val-row-user">${esc(item.u)}</span>
@@ -1249,21 +1245,12 @@ function runAssetValidation(registerCols, registerRows) {
       `<div class="val-row"><span class="val-row-user" style="color:var(--muted);font-style:italic">No user assigned</span><span class="val-badge" style="background:var(--surface2);color:var(--muted)">Unassigned</span></div>`
     )}`;
 
-  // Close menus when clicking outside
-  if (!window._valMenuListenerAdded) {
-    window._valMenuListenerAdded = true;
-    document.addEventListener('click', e => {
-      if (!e.target.closest('.val-ellipsis-wrap')) closeValMenus();
-    });
-  }
+  // (menu close handled by delegated listener)
 }
 
-function toggleValMenu(id) {
-  const menu = document.getElementById(id);
-  if (!menu) return;
-  const wasOpen = menu.classList.contains('open');
+function openValMenu(btn) {
   closeValMenus();
-  if (!wasOpen) menu.classList.add('open');
+  btn.nextElementSibling.classList.add('open');
 }
 
 function closeValMenus() {
@@ -1274,6 +1261,30 @@ function toggleMultiUser(el) {
   el.classList.toggle('open');
   el.nextElementSibling.classList.toggle('open');
 }
+
+// Single delegated click handler for all val menu actions
+document.addEventListener('click', function(e) {
+  const item = e.target.closest('.val-menu-item[data-action]');
+  if (item) {
+    e.stopPropagation();
+    closeValMenus();
+    const action  = item.dataset.action;
+    const payload = JSON.parse(item.dataset.payload);
+    if (action === 'missing') {
+      state.avIgnoredMissing.add(payload.disp);
+      runAssetValidation();
+    } else if (action === 'extra') {
+      state.avIgnoredExtra.add(payload.rv);
+      runAssetValidation();
+    } else if (action === 'device') {
+      state.avIgnoredDevices.add(`${payload.u}::${payload.dev}`);
+      runAssetValidation();
+    }
+    return;
+  }
+  // Close menus on outside click
+  if (!e.target.closest('.val-ellipsis-wrap')) closeValMenus();
+});
 
 function removeMissing(disp) {
   state.avIgnoredMissing.add(disp);
