@@ -323,11 +323,33 @@ body.dark .val-section-header:hover { filter:brightness(1.08); }
 .val-section.collapsed .val-section-header { border-bottom:none; }
 .val-chevron { margin-left:4px; font-size:10px; opacity:.6; transition:transform .2s; }
 .val-section.collapsed .val-chevron { transform:rotate(-90deg); }
-.val-row { display:flex; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid var(--border); font-size:13.5px; }
+.val-row { display:flex; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid var(--border); font-size:13.5px; position:relative; }
 .val-row:last-child { border-bottom:none; }
 .val-row-user { font-weight:600; color:var(--text); flex:1; }
 .val-row-detail { font-size:12px; color:var(--muted); }
 .val-badge { font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px; flex-shrink:0; }
+
+/* ellipsis menu */
+.val-ellipsis-wrap { position:relative; flex-shrink:0; }
+.val-ellipsis { background:none; border:none; color:var(--muted); cursor:pointer; font-size:18px; padding:2px 8px; border-radius:6px; line-height:1; transition:all .15s; font-family:monospace; }
+.val-ellipsis:hover { background:var(--surface2); color:var(--text); }
+.val-menu { position:absolute; right:0; top:calc(100% + 4px); background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 6px 24px var(--shadow-lg); min-width:160px; z-index:200; overflow:hidden; display:none; }
+.val-menu.open { display:block; }
+.val-menu-item { padding:9px 14px; font-size:13px; cursor:pointer; color:var(--text2); transition:background .12s,color .12s; white-space:nowrap; display:flex; align-items:center; gap:8px; }
+.val-menu-item:hover { background:var(--surface2); color:var(--text); }
+.val-menu-item.danger { color:var(--danger); }
+.val-menu-item.danger:hover { background:var(--danger-bg); }
+
+/* multi-device expandable */
+.val-multi-user { cursor:pointer; }
+.val-multi-user:hover .val-row-user { color:var(--accent); }
+.val-multi-chevron { font-size:10px; color:var(--muted); transition:transform .2s; }
+.val-multi-user.open .val-multi-chevron { transform:rotate(180deg); }
+.val-device-list { display:none; background:var(--surface2); border-top:1px solid var(--border); }
+.val-device-list.open { display:block; }
+.val-device-row { display:flex; align-items:center; gap:12px; padding:8px 18px 8px 36px; border-bottom:1px solid var(--border); font-size:13px; }
+.val-device-row:last-child { border-bottom:none; }
+.val-device-name { flex:1; color:var(--text2); font-family:'JetBrains Mono',monospace; font-size:12px; }
 .val-empty { padding:20px 18px; color:var(--muted); font-style:italic; font-size:13.5px; }
 </style>
 
@@ -350,6 +372,9 @@ const state = {
   asset:    { rows:[], cols:[], hidden:new Set(), lookupRows:[], lookupCols:[], searchQ:'', sortCol:null, sortDir:1 },
   budget:   { rows:[], cols:[], hidden:new Set(), searchQ:'', sortCol:null, sortDir:1 },
   avUsers:  { rows:[], cols:[] }, // inline asset validation users
+  avIgnoredMissing: new Set(),   // display names removed from missing list
+  avIgnoredExtra:   new Set(),   // register vals removed from extra list
+  avIgnoredDevices: new Set(),   // "user::deviceName" removed from multi-device list
 };
 
 // ── MODE ──
@@ -464,6 +489,7 @@ function clearFile(which, e) {
     document.getElementById('budgetColWrap').style.display='none';
   } else if (which === 'avUsers') {
     state.avUsers.rows=[]; state.avUsers.cols=[];
+    state.avIgnoredMissing=new Set(); state.avIgnoredExtra=new Set(); state.avIgnoredDevices=new Set();
     setDropState('avDrop','avFname','avDclear','',false);
     document.getElementById('assetValResults').innerHTML='';
   }
@@ -1127,6 +1153,33 @@ function runAssetValidation(registerCols, registerRows) {
 
   const unassigned = registerRows.filter(r => !normReg(r[assetUserCol]));
 
+  // Apply ignored filters
+  const shownMissing  = missing.filter(m => !state.avIgnoredMissing.has(m.disp));
+  const shownExtra    = extra.filter(rv => !state.avIgnoredExtra.has(rv));
+
+  // Build multi-device with device names, filtered by ignored devices
+  const multiWithDevices = multi.map(([u, count]) => {
+    const devices = registerRows
+      .filter(r => normReg(r[assetUserCol]) === u)
+      .map(r => {
+        const nameCol = registerCols.find(c => /^name$|device.?name|asset.?name/i.test(c));
+        return nameCol ? String(r[nameCol]||'').trim() : '';
+      })
+      .filter(Boolean)
+      .filter(dev => !state.avIgnoredDevices.has(`${u}::${dev}`));
+    return { u, devices };
+  }).filter(x => x.devices.length > 1);
+
+  function ellipsis(menuId, items) {
+    const menuItems = items.map(item =>
+      `<div class="val-menu-item${item.danger?' danger':''}" onclick="${item.action};closeValMenus()">${item.label}</div>`
+    ).join('');
+    return `<div class="val-ellipsis-wrap">
+      <button class="val-ellipsis" onclick="event.stopPropagation();toggleValMenu('${menuId}')">···</button>
+      <div class="val-menu" id="${menuId}">${menuItems}</div>
+    </div>`;
+  }
+
   function section(title, icon, colour, items, renderFn) {
     return `<div class="val-section">
       <div class="val-section-header" style="background:${colour}18;color:${colour}" onclick="this.closest('.val-section').classList.toggle('collapsed')">
@@ -1143,23 +1196,82 @@ function runAssetValidation(registerCols, registerRows) {
   document.getElementById('assetValResults').innerHTML = `
     <div class="val-summary">
       <div class="val-tile"><div class="val-tile-num" style="color:var(--green)">${matched.length}</div><div class="val-tile-label">✓ Matched</div></div>
-      <div class="val-tile"><div class="val-tile-num" style="color:var(--red)">${missing.length}</div><div class="val-tile-label">Missing from register</div></div>
-      <div class="val-tile"><div class="val-tile-num" style="color:var(--amber)">${extra.length}</div><div class="val-tile-label">Extra on register</div></div>
-      <div class="val-tile"><div class="val-tile-num" style="color:var(--accent)">${multi.length}</div><div class="val-tile-label">Multiple devices</div></div>
+      <div class="val-tile"><div class="val-tile-num" style="color:var(--red)">${shownMissing.length}</div><div class="val-tile-label">Missing from register</div></div>
+      <div class="val-tile"><div class="val-tile-num" style="color:var(--amber)">${shownExtra.length}</div><div class="val-tile-label">Extra on register</div></div>
+      <div class="val-tile"><div class="val-tile-num" style="color:var(--accent)">${multiWithDevices.length}</div><div class="val-tile-label">Multiple devices</div></div>
       <div class="val-tile"><div class="val-tile-num" style="color:var(--muted)">${unassigned.length}</div><div class="val-tile-label">Unassigned devices</div></div>
     </div>
-    ${section('Missing from register — no matching user found', '🔴', '#842029', missing, m =>
-      `<div class="val-row"><span class="val-row-user">${esc(m.disp)}</span><span class="val-badge" style="background:var(--red-bg);color:var(--red)">No match</span></div>`
-    )}
-    ${section('Extra on register — user not found in contact list', '🟡', '#7d5a00', extra, rv =>
-      `<div class="val-row"><span class="val-row-user">${esc(rv)}</span><span class="val-badge" style="background:var(--amber-bg);color:var(--amber)">Not in list</span></div>`
-    )}
-    ${section('Users with multiple devices', '🔵', '#4a6b9b', multi, ([u,count]) =>
-      `<div class="val-row"><span class="val-row-user">${esc(u)}</span><span class="val-badge" style="background:#eef3ff;color:#4a6b9b">${count} devices</span></div>`
-    )}
+    ${section('Missing from register — no matching user found', '🔴', '#842029', shownMissing, (m, i) => {
+      const mid = `vmenu_miss_${i}`;
+      return `<div class="val-row">
+        <span class="val-row-user">${esc(m.disp)}</span>
+        <span class="val-badge" style="background:var(--red-bg);color:var(--red)">No match</span>
+        ${ellipsis(mid, [{ label:'✕ Remove from list', danger:true, action:`removeMissing(${JSON.stringify(m.disp)})` }])}
+      </div>`;
+    })}
+    ${section('Extra on register — user not found in contact list', '🟡', '#7d5a00', shownExtra, (rv, i) => {
+      const mid = `vmenu_extra_${i}`;
+      return `<div class="val-row">
+        <span class="val-row-user">${esc(rv)}</span>
+        <span class="val-badge" style="background:var(--amber-bg);color:var(--amber)">Not in list</span>
+        ${ellipsis(mid, [{ label:'✕ Remove from list', danger:true, action:`removeExtra(${JSON.stringify(rv)})` }])}
+      </div>`;
+    })}
+    ${section('Users with multiple devices', '🔵', '#4a6b9b', multiWithDevices, (item, i) => {
+      const devRows = item.devices.map((dev, di) => {
+        const mid = `vmenu_dev_${i}_${di}`;
+        return `<div class="val-device-row">
+          <span class="val-device-name">${esc(dev)}</span>
+          ${ellipsis(mid, [{ label:'✕ Remove device', danger:true, action:`removeDevice(${JSON.stringify(item.u)},${JSON.stringify(dev)})` }])}
+        </div>`;
+      }).join('');
+      return `<div>
+        <div class="val-row val-multi-user" onclick="toggleMultiUser(this)">
+          <span class="val-row-user">${esc(item.u)}</span>
+          <span class="val-badge" style="background:#eef3ff;color:#4a6b9b">${item.devices.length} devices</span>
+          <span class="val-multi-chevron">▼</span>
+        </div>
+        <div class="val-device-list">${devRows}</div>
+      </div>`;
+    })}
     ${section('Unassigned devices — no user on register', '⚪', '#8a847c', unassigned, r =>
       `<div class="val-row"><span class="val-row-user" style="color:var(--muted);font-style:italic">No user assigned</span><span class="val-badge" style="background:var(--surface2);color:var(--muted)">Unassigned</span></div>`
     )}`;
+
+  // Close menus on outside click
+  document.addEventListener('click', closeValMenus, { once: true });
+}
+
+function toggleValMenu(id) {
+  const menu = document.getElementById(id);
+  if (!menu) return;
+  const wasOpen = menu.classList.contains('open');
+  closeValMenus();
+  if (!wasOpen) menu.classList.add('open');
+}
+
+function closeValMenus() {
+  document.querySelectorAll('.val-menu.open').forEach(m => m.classList.remove('open'));
+}
+
+function toggleMultiUser(el) {
+  el.classList.toggle('open');
+  el.nextElementSibling.classList.toggle('open');
+}
+
+function removeMissing(disp) {
+  state.avIgnoredMissing.add(disp);
+  runAssetValidation();
+}
+
+function removeExtra(rv) {
+  state.avIgnoredExtra.add(rv);
+  runAssetValidation();
+}
+
+function removeDevice(user, device) {
+  state.avIgnoredDevices.add(`${user}::${device}`);
+  runAssetValidation();
 }
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
